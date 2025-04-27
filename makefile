@@ -25,5 +25,14 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
 
+configure:
+	@if command -v bear >/dev/null 2>&1; then \
+		echo "Generating compile_commands.json with bear..."; \
+		bear -- make clean all; \
+	else \
+		echo "ERROR: 'bear' not installed. Please install 'bear' from your package manager or https://github.com/rizsotto/Bear"; \
+		exit 1; \
+	fi
+
 clean:
 	- rm -rf $(OBJ_DIR)/* $(EXECUTABLE)
