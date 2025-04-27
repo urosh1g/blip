@@ -8,17 +8,30 @@
 #define WINDOW_HEIGHT 600
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height){
-	glViewport(0,0,width,height);
+    (void)window;
+	glViewport(0, 0, width, height);
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods){
+    (void)window;
+    (void)key;
+    (void)scancode;
+    (void)action;
+    (void)mods;
 	//add necessary key checks here
 }
 
 void mouse_callback(GLFWwindow* window, int button, int action, int mods){
+    (void)window;
+    (void)button;
+    (void)action;
+    (void)mods;
 	//add necessary mouse checks here
 }
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
+    (void)window;
+    (void)xoffset;
+    (void)yoffset;
 	//add necessary onscroll actions here
 }
 
@@ -60,7 +73,7 @@ GLFWwindow* init_glad_glfw(){
 	return window;
 }
 
-void main(){
+int main(){
 	GLFWwindow* window=init_glad_glfw();
 	
 	while(!glfwWindowShouldClose(window)){	
@@ -72,4 +85,6 @@ void main(){
 
 	glfwDestroyWindow(window);
 	glfwTerminate();
+
+    return 0;
 }
