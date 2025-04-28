@@ -7,12 +7,12 @@
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
-void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     (void)window;
     glViewport(0, 0, width, height);
 }
 
-void key_callback(GLFWwindow *window, int key, int scancode, int action,
+void key_callback(GLFWwindow* window, int key, int scancode, int action,
                   int mods) {
     (void)window;
     (void)key;
@@ -22,27 +22,27 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action,
     // add necessary key checks here
 }
 
-void mouse_callback(GLFWwindow *window, int button, int action, int mods) {
+void mouse_callback(GLFWwindow* window, int button, int action, int mods) {
     (void)window;
     (void)button;
     (void)action;
     (void)mods;
     // add necessary mouse checks here
 }
-void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     (void)window;
     (void)xoffset;
     (void)yoffset;
     // add necessary onscroll actions here
 }
 
-void error_callback(int error_code, const char *description) {
+void error_callback(int error_code, const char* description) {
     fprintf(stderr, "glfw error code: %d\n", error_code);
     fprintf(stderr, "%s\n", description);
     exit(EXIT_FAILURE);
 }
 
-GLFWwindow *init_glad_glfw() {
+GLFWwindow* init_glad_glfw() {
     if (!glfwInit()) {
         fprintf(stderr, "Failed to init glfw\n");
         exit(EXIT_FAILURE);
@@ -51,7 +51,7 @@ GLFWwindow *init_glad_glfw() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow *window =
+    GLFWwindow* window =
         glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "New window", NULL, NULL);
     if (!window) {
         glfwTerminate();
@@ -76,7 +76,7 @@ GLFWwindow *init_glad_glfw() {
 }
 
 int main() {
-    GLFWwindow *window = init_glad_glfw();
+    GLFWwindow* window = init_glad_glfw();
 
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);

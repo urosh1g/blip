@@ -37,7 +37,7 @@ compile_commands.json:
 clang-format:
 	@if [ ! -f .clang-format ]; then \
 		echo "Creating .clang-format..."; \
-		printf "BasedOnStyle: llvm\nIndentWidth: 4\nTabWidth: 4\nUseTab: Never\nSortIncludes: false\n" > .clang-format; \
+		printf "BasedOnStyle: llvm\nIndentWidth: 4\nTabWidth: 4\nUseTab: Never\nSortIncludes: false\nPointerAlignment: Left" > .clang-format; \
 	fi
 
 configure: compile_commands.json clang-format
