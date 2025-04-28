@@ -38,6 +38,7 @@
     \
     static inline void dynarr_##name##_destroy(dynarr_##name##_t* arr) { \
         free(arr->elems); \
+        arr->elems = NULL; \
         arr->length = 0; \
         arr->capacity = 0; \
     } \
