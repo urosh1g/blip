@@ -9,6 +9,7 @@
 #define igGetIO igGetIO_Nil
 #include <cimgui/cimgui.h>
 #include <cimgui/cimgui_impl.h>
+#include <shader.h>
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
@@ -60,8 +61,7 @@ GLFWwindow* init_glad_glfw() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window =
-        glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "New window", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "New window", NULL, NULL);
     if (!window) {
         glfwTerminate();
         fprintf(stderr, "Failed to create window\n");
@@ -96,7 +96,15 @@ GLFWwindow* init_glad_glfw() {
 int main() {
     GLFWwindow* window = init_glad_glfw();
 
-    while (!glfwWindowShouldClose(window)) {
+	GLuint vert_shader=shader_load("vs.glsl",GL_VERTEX_SHADER);
+	GLuint frag_shader=shader_load("fs.glsl",GL_FRAGMENT_SHADER);
+	
+	GLuint shaders[2];
+	shaders[0]=vert_shader;
+	shaders[1]=frag_shader;
+	GLuint program=program_link(shaders, 2);
+    	program_use(program);
+	while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);
 
         ImGui_ImplOpenGL3_NewFrame();
