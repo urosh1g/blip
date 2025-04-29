@@ -75,14 +75,12 @@ void test_dynamic_int_array() {
            "dynarr_get should return the same element as indexing\n");
 
     size_t len = arr.length;
-    dynarr_i32_remove(&arr, 1);
+    
+    int32_t item    = arr.elems[1];
+    int32_t removed = dynarr_i32_remove(&arr, 1);
+    assert(removed == item && "dynarr_remove should return a valid item\n");
     assert(arr.length + 1 == len &&
            "dynarr_remove* should decrement the length\n");
-
-    len = arr.length;
-    dynarr_i32_remove_unordered(&arr, 128);
-    assert(len == arr.length &&
-           "dynarr_remove* should do nothing if out of bounds\n");
 
     dynarr_i32_clear(&arr);
     assert(arr.length == 0 && "dynarr_clear should reset the length\n");

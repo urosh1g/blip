@@ -9,6 +9,13 @@
 #define DYNARR_DEFAULT_CAPACITY 64
 #endif
 
+#ifdef DYNARR_DEBUG
+#include <assert.h>
+#define DYNARR_ASSERT(expr) assert(expr)
+#else
+#define DYNARR_ASSERT(expr) ((void)0)
+#endif
+
 #define dynarr_define_for(type, name)                                          \
     typedef struct {                                                           \
         type* elems;                                                           \
@@ -39,6 +46,7 @@
     }                                                                          \
                                                                                \
     static inline void dynarr_##name##_destroy(dynarr_##name##_t* arr) {       \
+        DYNARR_ASSERT(arr);                                                    \
         free(arr->elems);                                                      \
         arr->elems = NULL;                                                     \
         arr->length = 0;                                                       \
@@ -47,26 +55,30 @@
                                                                                \
     static inline type* dynarr_##name##_get(dynarr_##name##_t* arr,            \
                                             size_t index) {                    \
-        if (index >= arr->length) {                                            \
-            return NULL;                                                       \
-        }                                                                      \
+        DYNARR_ASSERT(index < arr->length &&                                   \
+                      "dynarr_get: index out of bounds");                      \
         return &arr->elems[index];                                             \
     }                                                                          \
                                                                                \
-    static inline void dynarr_##name##_remove(dynarr_##name##_t* arr,          \
+    static inline type dynarr_##name##_remove(dynarr_##name##_t* arr,          \
                                               size_t index) {                  \
+        DYNARR_ASSERT(index < arr->length &&                                   \
+                      "dynarr_remove: index out of bounds");                   \
+        type elem = arr->elems[index];                                         \
         for (size_t i = index; i < arr->length - 1; i++) {                     \
             arr->elems[i] = arr->elems[i + 1];                                 \
         }                                                                      \
         --arr->length;                                                         \
+        return elem;                                                           \
     }                                                                          \
                                                                                \
-    static inline void dynarr_##name##_remove_unordered(                       \
+    static inline type dynarr_##name##_remove_unordered(                       \
         dynarr_##name##_t* arr, size_t index) {                                \
-        if (index >= arr->length) {                                            \
-            return;                                                            \
-        }                                                                      \
+        DYNARR_ASSERT(index < arr->length &&                                   \
+                      "dynarr_remove_unordered: index out of bounds");         \
+        type elem = arr->elems[index];                                         \
         arr->elems[index] = arr->elems[--arr->length];                         \
+        return elem;                                                           \
     }                                                                          \
                                                                                \
     static inline void dynarr_##name##_clear(dynarr_##name##_t* arr) {         \
