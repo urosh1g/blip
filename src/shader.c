@@ -1,8 +1,5 @@
 #include <shader.h>
 #include <stdio.h>
-#include <glad/glad.h>
-#define BUFF_SIZE 256
-
 const char* file_load_text(const char* filename){
 	FILE* f=fopen(filename,"r");
 	if(!f){
@@ -13,15 +10,11 @@ const char* file_load_text(const char* filename){
 	fseek(f,0,SEEK_END);
 	size_t filesize=ftell(f);
 
-	char* text=malloc(filesize);
-	char buff[BUFF_SIZE];
+	char* text=malloc(filesize+1);
 
 	fseek(f,0,SEEK_SET);
-	text[0]='\0';
-	while(fgets(buff,BUFF_SIZE,f))
-	{
-		strcat(text,buff);
-	}
+	fread(text,64,filesize,f);
+	text[filesize]='\0';
 	return text;
 }
 
@@ -35,9 +28,10 @@ GLuint shader_load(const char* filename, GLenum shader_type){
 	glShaderSource(shader_id,1,&shader_code,NULL);
 	GLenum err=glGetError();
 	if(err!=GL_NO_ERROR){
-		printf("Caught Opengl error %d\n",err);
+		printf("Couldn't set shader source, error code: %d\n",err);
 	}
 	glCompileShader(shader_id);
+	free((char*)shader_code);
 	GLint success;
 	glGetShaderiv(shader_id,GL_COMPILE_STATUS,&success);
 	if(success==GL_FALSE){
@@ -67,6 +61,11 @@ GLuint program_link(GLuint* shaders, size_t num){
 		glAttachShader(program_id,shaders[i]);
 	}
 	glLinkProgram(program_id);
+	GLenum err=glGetError();
+	if(err!=GL_NO_ERROR){
+		printf("Program didn't link successfully.\n");
+		exit(EXIT_FAILURE);
+	}
 	for(size_t i=0;i<num;i++){
 		glDetachShader(program_id,shaders[i]);
 	}

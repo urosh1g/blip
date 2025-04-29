@@ -1,6 +1,6 @@
-#include <stdlib.h>
 #ifndef SHADER_H
 #define SHADER_H
+#include <stdlib.h>
 #include <glad/glad.h>
 #include <string.h>
 
