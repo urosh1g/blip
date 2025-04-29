@@ -3,9 +3,18 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#define CIMGUI_USE_GLFW
+#define CIMGUI_USE_OPENGL3
+#define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
+#define igGetIO igGetIO_Nil
+#include <cimgui/cimgui.h>
+#include <cimgui/cimgui_impl.h>
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
+
+struct ImGuiContext* imgui_ctx;
+struct ImGuiIO* imgui_io;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     (void)window;
@@ -59,12 +68,21 @@ GLFWwindow* init_glad_glfw() {
         exit(EXIT_FAILURE);
     }
     glfwMakeContextCurrent(window);
+    // enable vsync
+    glfwSwapInterval(1);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetKeyCallback(window, key_callback);
     glfwSetMouseButtonCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetErrorCallback(error_callback);
+
+    imgui_ctx = igCreateContext(NULL);
+    imgui_io = igGetIO();
+
+    ImGui_ImplGlfw_InitForOpenGL(window, 1);
+    ImGui_ImplOpenGL3_Init("#version 330 core");
+    igStyleColorsDark(NULL);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         glfwDestroyWindow(window);
@@ -81,9 +99,21 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);
 
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        igNewFrame();
+
+        igShowDemoWindow(NULL);
+
+        igRender();
+        ImGui_ImplOpenGL3_RenderDrawData(igGetDrawData());
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    igDestroyContext(imgui_ctx);
 
     glfwDestroyWindow(window);
     glfwTerminate();
