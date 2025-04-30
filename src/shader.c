@@ -13,7 +13,7 @@ const char* file_load_text(const char* filename){
 	char* text=malloc(filesize+1);
 
 	fseek(f,0,SEEK_SET);
-	fread(text,64,filesize,f);
+	fread(text,1,filesize,f);
 	text[filesize]='\0';
 	return text;
 }
@@ -27,7 +27,7 @@ GLuint shader_load(const char* filename, GLenum shader_type){
 	}
 	glShaderSource(shader_id,1,&shader_code,NULL);
 	GLenum err=glGetError();
-	if(err!=GL_NO_ERROR){
+	while(err!=GL_NO_ERROR){
 		printf("Couldn't set shader source, error code: %d\n",err);
 	}
 	glCompileShader(shader_id);
@@ -35,9 +35,8 @@ GLuint shader_load(const char* filename, GLenum shader_type){
 	GLint success;
 	glGetShaderiv(shader_id,GL_COMPILE_STATUS,&success);
 	if(success==GL_FALSE){
-		GLsizei log_size;
-		glGetShaderiv(shader_id,GL_INFO_LOG_LENGTH,&log_size);					                GLchar *log=malloc(1024);
-		glGetShaderInfoLog(shader_id,1024,&log_size,log);
+		GLchar *log=malloc(1024);
+		glGetShaderInfoLog(shader_id,1024,NULL,log);
 		fprintf(stderr,"Error compiling shader %s\n",filename);
 		fprintf(stderr,"%s\n",log);
 		free(log);
@@ -61,9 +60,15 @@ GLuint program_link(GLuint* shaders, size_t num){
 		glAttachShader(program_id,shaders[i]);
 	}
 	glLinkProgram(program_id);
-	GLenum err=glGetError();
-	if(err!=GL_NO_ERROR){
+	GLint err; 
+	glGetProgramiv(program_id,GL_LINK_STATUS,&err);
+	if(err!=GL_TRUE){
 		printf("Program didn't link successfully.\n");
+		GLchar *log=malloc(1024);
+		glGetProgramInfoLog(program_id,1024,NULL,log);
+		fprintf(stderr,"Error linking program\n");
+		fprintf(stderr,"%s\n",log);
+		free(log);
 		exit(EXIT_FAILURE);
 	}
 	for(size_t i=0;i<num;i++){
