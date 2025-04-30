@@ -61,7 +61,8 @@ GLFWwindow* init_glad_glfw() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "New window", NULL, NULL);
+    GLFWwindow* window =
+        glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "New window", NULL, NULL);
     if (!window) {
         glfwTerminate();
         fprintf(stderr, "Failed to create window\n");
@@ -96,41 +97,36 @@ GLFWwindow* init_glad_glfw() {
 int main() {
     GLFWwindow* window = init_glad_glfw();
 
-	GLuint vert_shader=shader_load("vs.glsl",GL_VERTEX_SHADER);
-	GLuint frag_shader=shader_load("fs.glsl",GL_FRAGMENT_SHADER);
-	
-	GLuint shaders[2];
-	shaders[0]=vert_shader;
-	shaders[1]=frag_shader;
-	GLuint program=program_link(shaders, 2);
-		
-	float vertices[]={
-		0,0,0,
-		0.5,0.5,0,
-		-0.5,0.5,0
-	};
+    GLuint vert_shader = shader_load("vs.glsl", GL_VERTEX_SHADER);
+    GLuint frag_shader = shader_load("fs.glsl", GL_FRAGMENT_SHADER);
 
-	unsigned int VAO;
-	glGenVertexArrays(1, &VAO);  
-	glBindVertexArray(VAO);
-	
-	GLuint VBO;
-	glGenBuffers(1,&VBO);
-	glBindBuffer(GL_ARRAY_BUFFER,VBO);
-	glBufferData(GL_ARRAY_BUFFER,9*sizeof(float),&vertices,GL_STATIC_DRAW);
-	glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(float),0);
-	glEnableVertexAttribArray(0);
+    GLuint shaders[2];
+    shaders[0] = vert_shader;
+    shaders[1] = frag_shader;
+    GLuint program = program_link(shaders, 2);
 
-	while (!glfwWindowShouldClose(window)) {
+    float vertices[] = {0, 0, 0, 0.5, 0.5, 0, -0.5, 0.5, 0};
+
+    unsigned int VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
+    GLuint VBO;
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), &vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+    glEnableVertexAttribArray(0);
+
+    while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);
 
-    	program_use(program);
-        
-	glBindVertexArray(VAO);
-	glDrawArrays(GL_TRIANGLES, 0, 3);
-        
-	
-	ImGui_ImplOpenGL3_NewFrame();
+        program_use(program);
+
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         igNewFrame();
 
