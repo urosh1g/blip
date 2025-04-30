@@ -6,10 +6,15 @@ LIB_DIR = lib
 INCLUDE_DIR = include
 TEST_DIR = tests
 
+DEBUG ?= 1
+
 CFLAGS  = -Wall -Wextra -Werror -Wfatal-errors -std=c11
 LDFLAGS = -Wl,-rpath=./$(LIB_DIR) -L$(LIB_DIR)
 LDARGS  = -lcimgui -lglfw3 -lm
 
+ifeq ($(DEBUG), 1)
+	CFLAGS += -ggdb
+endif
 
 SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
 OBJ_FILES = $(SRC_FILES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
