@@ -1,5 +1,6 @@
 main
 obj/*
+*.out
 .cache
 compile_commands.json
 *.ini

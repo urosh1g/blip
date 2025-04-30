@@ -4,6 +4,7 @@ SRC_DIR = src
 OBJ_DIR = obj
 LIB_DIR = lib
 INCLUDE_DIR = include
+TEST_DIR = tests
 
 CFLAGS  = -Wall -Wextra -Werror -Wfatal-errors -std=c11
 LDFLAGS = -Wl,-rpath=./$(LIB_DIR) -L$(LIB_DIR)
@@ -12,6 +13,8 @@ LDARGS  = -lcimgui -lglfw3 -lm
 
 SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
 OBJ_FILES = $(SRC_FILES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
+TEST_FILES = $(wildcard $(TEST_DIR)/*.c)
+TEST_EXECUTABLES = $(TEST_FILES:$(TEST_DIR)/%.c=$(TEST_DIR)/%.out)
 EXECUTABLE = main
 
 .PHONY: all
@@ -44,5 +47,10 @@ clang-format:
 
 configure: compile_commands.json clang-format
 
+tests: $(TEST_EXECUTABLES)
+
+$(TEST_DIR)/%.out: $(TEST_DIR)/%.c
+	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -L$(LIB_DIR) $< -o $@ $(LDARGS)
+
 clean:
-	- rm -rf $(OBJ_DIR) $(EXECUTABLE) .cache/ compile_commands.json
+	- rm -rf $(OBJ_DIR) $(EXECUTABLE) $(TEST_EXECUTABLES) .cache/ compile_commands.json
