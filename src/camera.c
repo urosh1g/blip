@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include <cglm/mat4.h>
 #include <cglm/vec3.h>
@@ -9,8 +10,8 @@
 #include <camera.h>
 
 #define CAMERA_DEFAULT_PERSPECTIVE_FOV 45.0f
-#define CAMERA_DEFAULT_YAW 45.0f
-#define CAMERA_DEFAULT_PITCH 60.0f
+#define CAMERA_DEFAULT_YAW -90.0f
+#define CAMERA_DEFAULT_PITCH 0.0f
 
 camera_t* camera_create(const vec3 position, const vec3 world_up,
                         const float aspect, const float near, const float far,
@@ -27,10 +28,9 @@ camera_t* camera_create(const vec3 position, const vec3 world_up,
 
     glm_vec3_copy((float*)position, camera->position);
     glm_vec3_copy((float*)world_up, camera->world_up);
-    glm_vec3_normalize(camera->world_up);
 
     if (type == CAMERA_PERSPECTIVE) {
-        camera->fov = CAMERA_DEFAULT_PERSPECTIVE_FOV;
+        camera->fov = fov;
         glm_perspective(camera->fov, aspect, near, far, camera->projection);
     } else {
         glm_ortho_default(aspect, camera->projection);
