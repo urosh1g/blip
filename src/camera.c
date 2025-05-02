@@ -47,22 +47,22 @@ camera_t* camera_create(const vec3 position, const vec3 world_up,
  */
 void camera_move(camera_t* camera, direction_t direction, float amount) {
     vec3 delta;
-    switch(direction) {
-        case DIRECTION_FRONT:
-            glm_vec3_scale(camera->front, amount, delta);
-            break;
-        case DIRECTION_BACK:
-            glm_vec3_scale(camera->front, -amount, delta);
-            break;
-        case DIRECTION_LEFT:
-            glm_vec3_scale(camera->right, -amount, delta);
-            break;
-        case DIRECTION_RIGHT:
-            glm_vec3_scale(camera->right, amount, delta);
-            break;
-        default:
-            fprintf(stderr, "ERROR: %s: Invalid direction\n", __FUNCTION__);
-            return;
+    switch (direction) {
+    case DIRECTION_FRONT:
+        glm_vec3_scale(camera->front, amount, delta);
+        break;
+    case DIRECTION_BACK:
+        glm_vec3_scale(camera->front, -amount, delta);
+        break;
+    case DIRECTION_LEFT:
+        glm_vec3_scale(camera->right, -amount, delta);
+        break;
+    case DIRECTION_RIGHT:
+        glm_vec3_scale(camera->right, amount, delta);
+        break;
+    default:
+        fprintf(stderr, "ERROR: %s: Invalid direction\n", __FUNCTION__);
+        return;
     }
     glm_vec3_add(camera->position, delta, camera->position);
     camera_update_view(camera);
@@ -72,8 +72,10 @@ void camera_rotate(camera_t* camera, float delta_yaw, float delta_pitch) {
     camera->yaw += delta_yaw;
     camera->pitch += delta_pitch;
 
-    if(camera->pitch > 89.0f) camera->pitch = 89.0f;
-    if(camera->pitch < -89.0f) camera->pitch = -89.0f;
+    if (camera->pitch > 89.0f)
+        camera->pitch = 89.0f;
+    if (camera->pitch < -89.0f)
+        camera->pitch = -89.0f;
 
     camera_update_view(camera);
 }
