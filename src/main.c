@@ -9,10 +9,19 @@
 #define igGetIO igGetIO_Nil
 #include <cimgui/cimgui.h>
 #include <cimgui/cimgui_impl.h>
+#include <cglm/cglm.h>
 #include <shader.h>
+#include <camera.h>
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
+
+camera_t* global_camera = NULL;
+float last_x = 0, last_y = 0;
+bool first_pass = true;
+
+float last_frame = 0;
+float delta_time = 0;
 
 struct ImGuiContext* imgui_ctx;
 struct ImGuiIO* imgui_io;
@@ -30,6 +39,29 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action,
     (void)action;
     (void)mods;
     // add necessary key checks here
+    float amount = 5.0f * delta_time;
+    switch (key) {
+    case GLFW_KEY_W:
+        if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+            camera_move(global_camera, DIRECTION_FRONT, amount);
+        }
+        break;
+    case GLFW_KEY_S:
+        if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+            camera_move(global_camera, DIRECTION_BACK, amount);
+        }
+        break;
+    case GLFW_KEY_A:
+        if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+            camera_move(global_camera, DIRECTION_LEFT, amount);
+        }
+        break;
+    case GLFW_KEY_D:
+        if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+            camera_move(global_camera, DIRECTION_RIGHT, amount);
+        }
+        break;
+    }
 }
 
 void mouse_callback(GLFWwindow* window, int button, int action, int mods) {
@@ -39,6 +71,26 @@ void mouse_callback(GLFWwindow* window, int button, int action, int mods) {
     (void)mods;
     // add necessary mouse checks here
 }
+
+void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos) {
+    (void)window;
+    (void)xpos;
+    (void)ypos;
+    if (first_pass) {
+        first_pass = false;
+        last_x = xpos;
+        last_y = ypos;
+        return;
+    }
+    float xoffset = (xpos - last_x) * 0.1f;
+    float yoffset = (last_y - ypos) * 0.1f;
+
+    last_x = xpos;
+    last_y = ypos;
+
+    camera_rotate(global_camera, xoffset, yoffset);
+}
+
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     (void)window;
     (void)xoffset;
@@ -72,6 +124,8 @@ GLFWwindow* init_glad_glfw() {
     // enable vsync
     glfwSwapInterval(1);
 
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, cursor_pos_callback);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetKeyCallback(window, key_callback);
     glfwSetMouseButtonCallback(window, mouse_callback);
@@ -118,10 +172,30 @@ int main() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
     glEnableVertexAttribArray(0);
 
+    mat4 model = GLM_MAT4_IDENTITY_INIT;
+    vec3 camera_pos = {0, 0, 2};
+    vec3 world_up = {0, 1, 0};
+    camera_t* camera = camera_create(camera_pos, world_up, 16 / 9.0f, 0.1f,
+                                     100.0f, 45.0f, CAMERA_PERSPECTIVE);
+
+    global_camera = camera;
+
     while (!glfwWindowShouldClose(window)) {
-        glClear(GL_COLOR_BUFFER_BIT);
+        float current_frame = (float)glfwGetTime();
+        delta_time = current_frame - last_frame;
+        last_frame = current_frame;
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         program_use(program);
+        GLuint model_id = glGetUniformLocation(program, "model");
+        GLuint view_id = glGetUniformLocation(program, "view");
+        GLuint projection_id = glGetUniformLocation(program, "projection");
+        (void)camera;
+
+        glUniformMatrix4fv(model_id, 1, GL_FALSE, (const float*)model);
+        glUniformMatrix4fv(view_id, 1, GL_FALSE, (const float*)camera->view);
+        glUniformMatrix4fv(projection_id, 1, GL_FALSE,
+                           (const float*)camera->projection);
 
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
