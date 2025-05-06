@@ -175,10 +175,11 @@ int main() {
     mat4 model = GLM_MAT4_IDENTITY_INIT;
     vec3 camera_pos = {0, 0, 2};
     vec3 world_up = {0, 1, 0};
-    camera_t* camera = camera_create(camera_pos, world_up, 16 / 9.0f, 0.1f,
+    camera_t camera;
+    camera_create(&camera, camera_pos, world_up, 16 / 9.0f, 0.1f,
                                      100.0f, 45.0f, CAMERA_PERSPECTIVE);
 
-    global_camera = camera;
+    global_camera = &camera;
 
     while (!glfwWindowShouldClose(window)) {
         float current_frame = (float)glfwGetTime();
@@ -193,9 +194,9 @@ int main() {
         (void)camera;
 
         glUniformMatrix4fv(model_id, 1, GL_FALSE, (const float*)model);
-        glUniformMatrix4fv(view_id, 1, GL_FALSE, (const float*)camera->view);
+        glUniformMatrix4fv(view_id, 1, GL_FALSE, (const float*)camera.view);
         glUniformMatrix4fv(projection_id, 1, GL_FALSE,
-                           (const float*)camera->projection);
+                           (const float*)camera.projection);
 
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
