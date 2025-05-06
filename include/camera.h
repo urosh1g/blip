@@ -21,7 +21,7 @@ typedef struct {
     mat4 view;
 } camera_t;
 
-camera_t* camera_create(const vec3 position, const vec3 world_up,
+void camera_create(camera_t* camera, const vec3 position, const vec3 world_up,
                         const float aspect, const float near, const float far,
                         const float fov, camera_projection_type type);
 
@@ -34,13 +34,5 @@ void camera_rotate(camera_t* camera, float delta_yaw, float delta_pitch);
  */
 void camera_update_view(camera_t* camera);
 
-/*
- *   Param: camera
- *   TODO: Should be of type camera_t*.
- *   Keeping it as void* for now,
- *   might be used as a destructor function
- *   in the near future.
- */
-void camera_destroy(void* camera);
-
 #endif
+

@@ -13,10 +13,9 @@
 #define CAMERA_DEFAULT_YAW -90.0f
 #define CAMERA_DEFAULT_PITCH 0.0f
 
-camera_t* camera_create(const vec3 position, const vec3 world_up,
+void camera_create(camera_t* camera, const vec3 position, const vec3 world_up,
                         const float aspect, const float near, const float far,
                         const float fov, camera_projection_type type) {
-    camera_t* camera = (camera_t*)malloc(sizeof(camera_t));
     memset(camera, 0, sizeof(camera_t));
 
     camera->yaw = CAMERA_DEFAULT_YAW;
@@ -38,7 +37,7 @@ camera_t* camera_create(const vec3 position, const vec3 world_up,
 
     camera_update_view(camera);
 
-    return camera;
+    return;
 }
 
 /*
@@ -114,7 +113,3 @@ void camera_update_view(camera_t* camera) {
     glm_lookat(camera->position, target, camera->up, camera->view);
 }
 
-void camera_destroy(void* camera_s) {
-    camera_t* camera = (camera_t*)camera_s;
-    free(camera);
-}
