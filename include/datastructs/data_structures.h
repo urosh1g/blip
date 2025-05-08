@@ -3,5 +3,7 @@
 
 #include "./dynarr.h"
 #include "./dequeue.h"
+#include "./hashtable.h"
+
 #endif
 
