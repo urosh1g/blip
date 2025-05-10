@@ -52,10 +52,10 @@ clang-format:
 
 configure: compile_commands.json clang-format
 
-tests: $(TEST_EXECUTABLES)
+tests: $(TEST_EXECUTABLES) $(OBJ_DIR)/entity.o
 
-$(TEST_DIR)/%.out: $(TEST_DIR)/%.c
-	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -L$(LIB_DIR) $< -o $@ $(LDARGS)
+$(TEST_DIR)/%.out: $(TEST_DIR)/%.c $(OBJ_DIR)/entity.o
+	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -L$(LIB_DIR) $^ -o $@ $(LDARGS)
 
 clean:
 	- rm -rf $(OBJ_DIR) $(EXECUTABLE) $(TEST_EXECUTABLES) .cache/ compile_commands.json
