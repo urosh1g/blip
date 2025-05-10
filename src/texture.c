@@ -1,7 +1,7 @@
 #include <texture.h>
 
-unsigned int tex_load(const char* filename, TEX_ENUM flip_vertically) {
-    if (flip_vertically == TEX_FLIP_VERT_ON)
+unsigned int tex_load(const char* filename, bool flip_vertically) {
+    if (flip_vertically == true)
         stbi_set_flip_vertically_on_load(1);
     else
         stbi_set_flip_vertically_on_load(0);
@@ -9,10 +9,10 @@ unsigned int tex_load(const char* filename, TEX_ENUM flip_vertically) {
     int width, height, channels_num;
     unsigned char* img = stbi_load(filename, &width, &height, &channels_num, 0);
     if (!img) {
-
         fprintf(stderr, "Failed to load img %s\n", filename);
         fprintf(stderr, "%s\n", stbi_failure_reason());
-        exit(EXIT_FAILURE);
+    	img = stbi_load("assets/img.png", &width, &height, &channels_num, 0);
+    
     }
 
     unsigned int texture;

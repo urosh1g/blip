@@ -189,7 +189,8 @@ int main() {
 
     glBindVertexArray(0);
 
-    unsigned int img_id = tex_load("./assets/img.png", TEX_FLIP_VERT_ON);
+    unsigned int img_id = tex_load("./assets/img.png", true);
+    (void) img_id2;
     program_use(program);
     glActiveTexture(GL_TEXTURE0);
     tex_bind(img_id);
