@@ -1,10 +1,11 @@
 #include <texture.h>
+#include <stb_image.h>
+#include <stdlib.h>
+#include <cglm/cglm.h>
+#include <glad/glad.h>
 
 unsigned int tex_load(const char* filename, bool flip_vertically) {
-    if (flip_vertically == true)
-        stbi_set_flip_vertically_on_load(1);
-    else
-        stbi_set_flip_vertically_on_load(0);
+    stbi_set_flip_vertically_on_load(flip_vertically);
 
     int width, height, channels_num;
     unsigned char* img = stbi_load(filename, &width, &height, &channels_num, 0);

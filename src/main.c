@@ -190,7 +190,7 @@ int main() {
     glBindVertexArray(0);
 
     unsigned int img_id = tex_load("./assets/img.png", true);
-    (void) img_id2;
+    (void) img_id;
     program_use(program);
     glActiveTexture(GL_TEXTURE0);
     tex_bind(img_id);
