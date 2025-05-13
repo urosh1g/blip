@@ -12,7 +12,7 @@
 #include <cglm/cglm.h>
 #include <shader.h>
 #include <camera.h>
-
+#include <texture.h>
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
@@ -59,6 +59,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action,
     case GLFW_KEY_D:
         if (action == GLFW_PRESS || action == GLFW_REPEAT) {
             camera_move(global_camera, DIRECTION_RIGHT, amount);
+        }
+        break;
+    case GLFW_KEY_APOSTROPHE:
+        if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
         break;
     }
@@ -159,18 +164,38 @@ int main() {
     shaders[1] = frag_shader;
     GLuint program = program_link(shaders, 2);
 
-    float vertices[] = {0, 0, 0, 0.5, 0.5, 0, -0.5, 0.5, 0};
+    float vertices[] = {// coords	  //tex_coords
+                        -0.5, 0.5,  0, 0, 1, -0.5, -0.5, 0, 0, 0,
+                        0.5,  -0.5, 0, 1, 0, 0.5,  0.5,  0, 1, 1};
+    unsigned int indices[] = {0, 1, 2, 0, 2, 3};
 
-    unsigned int VAO;
+    unsigned int VAO, VBO, EBO;
     glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
     glBindVertexArray(VAO);
 
-    GLuint VBO;
-    glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), &vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
+                 GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                          (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(0);
+
+    unsigned int img_id = tex_load("./assets/img.png", true);
+    (void) img_id;
+    program_use(program);
+    glActiveTexture(GL_TEXTURE0);
+    tex_bind(img_id);
+    GLuint tex_uniform = glGetUniformLocation(program, "tex");
+    glUniform1i(tex_uniform, 0);
 
     mat4 model = GLM_MAT4_IDENTITY_INIT;
     vec3 camera_pos = {0, 0, 2};
@@ -188,6 +213,7 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         program_use(program);
+
         GLuint model_id = glGetUniformLocation(program, "model");
         GLuint view_id = glGetUniformLocation(program, "view");
         GLuint projection_id = glGetUniformLocation(program, "projection");
@@ -199,8 +225,8 @@ int main() {
                            (const float*)camera.projection);
 
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         igNewFrame();
@@ -217,6 +243,10 @@ int main() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     igDestroyContext(imgui_ctx);
+
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
 
     glfwDestroyWindow(window);
     glfwTerminate();
