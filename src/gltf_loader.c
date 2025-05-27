@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <logger.h>
+#include <logger/logger.h>
 
 #define COMPTYPE_FLOAT 5126
 #define COMPTYPE_USHORT 5123

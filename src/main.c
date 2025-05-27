@@ -197,6 +197,7 @@ void vertices_indices_set(float* vertices, unsigned int vert_size, unsigned int*
     glBindVertexArray(0);
 }
 
+
 int main() {
     FILE* file_log = fopen("log.txt", "w");
     log_add_sink((log_sink_t){
@@ -221,16 +222,17 @@ int main() {
     log_fatal("This is a fatal level log.");
 
     float vertices[] = {// coords	  //tex_coords
-                        -0.5, 0.5,  0, 0, 1, -0.5, -0.5, 0, 0, 0,
-                        0.5,  -0.5, 0, 1, 0, 0.5,  0.5,  0, 1, 1};
+                        -0.5, 0.5,  0, 0, 1, 
+			-0.5, -0.5, 0, 0, 0,
+                        0.5,  -0.5, 0, 1, 0, 
+			0.5,  0.5,  0, 1, 1};
     unsigned int indices[] = {0, 1, 2, 0, 2, 3};
-    
     unsigned int VAO, VBO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
     glBindVertexArray(VAO);
-
+ 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
@@ -305,7 +307,6 @@ int main() {
     glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1,&VBO);
 	glDeleteBuffers(1,&EBO);
-
     glfwDestroyWindow(window);
     glfwTerminate();
 
