@@ -15,7 +15,7 @@
 #include <texture.h>
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
-
+#include <gltf-loader.h>
 camera_t* global_camera = NULL;
 float last_x = 0, last_y = 0;
 bool first_pass = true;
@@ -153,6 +153,31 @@ GLFWwindow* init_glad_glfw() {
     return window;
 }
 
+unsigned int vertices_indices_set(float* vertices, int vert_size, unsigned int* indices, int ind_size){
+    unsigned int VAO, VBO, EBO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, vert_size, vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, ind_size, indices,
+                 GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                          (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(0);
+    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
+    return VAO;
+}
+
 int main() {
     GLFWwindow* window = init_glad_glfw();
 
@@ -164,28 +189,33 @@ int main() {
     shaders[1] = frag_shader;
     GLuint program = program_link(shaders, 2);
 
+    data* obj;
+    gltf_load("assets/cube.txt",&obj);
+    
     float vertices[] = {// coords	  //tex_coords
-                        -0.5, 0.5,  0, 0, 1, -0.5, -0.5, 0, 0, 0,
-                        0.5,  -0.5, 0, 1, 0, 0.5,  0.5,  0, 1, 1};
+                        -0.5, 0.5,  0, 0, 1, 
+			-0.5, -0.5, 0, 0, 0,
+                        0.5,  -0.5, 0, 1, 0, 
+			0.5,  0.5,  0, 1, 1};
     unsigned int indices[] = {0, 1, 2, 0, 2, 3};
+    unsigned int VAO=vertices_indices_set(vertices, sizeof(vertices), indices,sizeof(indices));
+	//    unsigned int VAO, VBO, EBO;
+	//    glGenVertexArrays(1, &VAO);
+	//    glGenBuffers(1, &VBO);
+	//    glGenBuffers(1, &EBO);
+	//    glBindVertexArray(VAO);
 
-    unsigned int VAO, VBO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    glBindVertexArray(VAO);
+	//    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	//    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
+	//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
+	//		 GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
-                 GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                          (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
+	//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+	//    glEnableVertexAttribArray(0);
+	//    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+	//			  (void*)(3 * sizeof(float)));
+	//    glEnableVertexAttribArray(1);
 
     glBindVertexArray(0);
 
@@ -245,8 +275,6 @@ int main() {
     igDestroyContext(imgui_ctx);
 
     glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
 
     glfwDestroyWindow(window);
     glfwTerminate();
