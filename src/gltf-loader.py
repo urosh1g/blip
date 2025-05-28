@@ -5,7 +5,7 @@ import sys
 
 def component_datatype(cmpnnt_typename):
     cmpnnt_type={5126:"float",5123:"ushort"}
-    cmpnnt_type_bytes={"float":4,"ushort":1}
+    cmpnnt_type_bytes={"float":4,"ushort":2}
     numbytes=cmpnnt_type_bytes[cmpnnt_type[cmpnnt_typename]]
     return numbytes
 
@@ -42,7 +42,8 @@ def fetch_vertices(contents, endianness):
     vertices_count=accessors[pos_index]["count"]
     vert_datatype=component_datatype(accessors[pos_index]["componentType"])
     vert_size=type_size(accessors[pos_index]["type"])
-    vert_buffviews=buffer_views[pos_index]
+    buffview=accessors[pos_index]["bufferView"]
+    vert_buffviews=buffer_views[buffview]
     vert_offset_bytes=vert_buffviews["byteOffset"]
     vert_length_bytes=vert_buffviews["byteLength"]
 
@@ -67,7 +68,8 @@ def fetch_indices(contents, endianness):
     indices_count=accessors[ind_index]["count"]
     index_datatype=component_datatype(accessors[ind_index]["componentType"])
     index_size=type_size(accessors[ind_index]["type"])
-    ind_buffviews=buffer_views[ind_index]
+    buffview=accessors[ind_index]["bufferView"]
+    ind_buffviews=buffer_views[buffview]
     ind_offset_bytes=ind_buffviews["byteOffset"]
     ind_length_bytes=ind_buffviews["byteLength"]
 
@@ -78,7 +80,7 @@ def fetch_indices(contents, endianness):
     while index<indices_count:
         start=ind_offset_bytes+index*size
         index_bytes=binary[start:start+size]
-        ind, = struct.unpack(endianness+"B",index_bytes)
+        ind, = struct.unpack(endianness+"H",index_bytes)
         indices.append(ind)
         index+=1
     return indices
