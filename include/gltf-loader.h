@@ -2,10 +2,10 @@
 #define GLTF_LOADER
 
 typedef struct data{
-	int vert_size;
+	unsigned int vert_size;
 	float* vertices;
-	int ind_size;
-	int* indices;
+	unsigned int ind_size;
+	unsigned int* indices;
 } data;
 
 void gltf_load(char* filename, data** obj);

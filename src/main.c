@@ -152,50 +152,6 @@ GLFWwindow* init_glad_glfw() {
     }
     return window;
 }
-typedef struct buffers_t{
-	unsigned int VAO;
-	unsigned int VBO;
-	unsigned int EBO;
-}buffers_t;
-
-void vertices_indices_set(float* vertices, unsigned int vert_size, unsigned int* indices, unsigned int ind_size, buffers_t** BUF, bool has_texture){
-   if (!vertices || !indices || vert_size <= 0 || ind_size <= 0) {
-	      fprintf(stderr, "Invalid args\n");
-	         exit(EXIT_FAILURE);
-   } 
-    *BUF=malloc(sizeof(buffers_t));	
-    if(!(*BUF)){
-    	fprintf(stderr,"No memory to allocate\n");
-	exit(EXIT_FAILURE);
-    }
-    glGenVertexArrays(1, &(*BUF)->VAO);
-    glGenBuffers(1, &(*BUF)->VBO);
-    if((*BUF)->EBO)
-    	glGenBuffers(1, &(*BUF)->EBO);
-    glBindVertexArray((*BUF)->VAO);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, (*BUF)->VBO);
-    glBufferData(GL_ARRAY_BUFFER, vert_size, vertices, GL_STATIC_DRAW);
-    if((*BUF)->EBO)
-    {
-	    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, (*BUF)->EBO);
-    	glBufferData(GL_ELEMENT_ARRAY_BUFFER, ind_size, indices, GL_STATIC_DRAW);
-    }
-
-    if (has_texture){
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), 0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float),(void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    }
-    else
-    {
-    	glVertexAttribPointer(0, 3, GL_FLOAT, GL_TRUE, 0, 0);
-    	glEnableVertexAttribArray(0);
-    
-    }
-    glBindVertexArray(0);
-}
 
 
 int main() {
@@ -221,7 +177,7 @@ int main() {
     log_error("This is a error level log.");
     log_fatal("This is a fatal level log.");
 
-    float vertices[] = {// coords	  //tex_coords
+   float vertices[] = {// coords     //tex_coords
                         -0.5, 0.5,  0, 0, 1, 
 			-0.5, -0.5, 0, 0, 0,
                         0.5,  -0.5, 0, 1, 0, 
@@ -286,7 +242,6 @@ int main() {
         glBindVertexArray(0);
         
 	
-	
 	ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         igNewFrame();
@@ -305,8 +260,8 @@ int main() {
     igDestroyContext(imgui_ctx);
 
     glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1,&VBO);
-	glDeleteBuffers(1,&EBO);
+    glDeleteBuffers(1,&VBO);
+    glDeleteBuffers(1,&EBO);
     glfwDestroyWindow(window);
     glfwTerminate();
 

@@ -1,3 +1,3 @@
-[[33m[1mWARN[0m] src/main.c:220 This is a warn level log.
-[[31m[1mERROR[0m] src/main.c:221 This is a error level log.
-[[31m[47m[1mFATAL[0m] src/main.c:222 This is a fatal level log.
+[[33m[1mWARN[0m] src/main.c:176 This is a warn level log.
+[[31m[1mERROR[0m] src/main.c:177 This is a error level log.
+[[31m[47m[1mFATAL[0m] src/main.c:178 This is a fatal level log.
