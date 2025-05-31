@@ -59,13 +59,13 @@ void extract_data(char* chunkData){
 	char* buffView_indx;
 	uint32_t indx=0;
 	uint32_t i=0;
-	fprintf(stdout, "Searching for indx=%s...\n",POSITION);
+	//fprintf(stdout, "Searching for accessor[%s]...\n",POSITION);
 	while(!found&&indx<strlen(accessors)){
 		char accessor_s[20];
 		sprintf(accessor_s,"accessor[%d]",i);
        		extract_subchunk(&buffView_indx, "{","}",&accessors[indx],accessor_s);
 		if(atoi(POSITION)==i){
-			fprintf(stdout,"FOUND accessor[%s]\n",POSITION);
+			//fprintf(stdout,"FOUND accessor[%s]\n",POSITION);
 			found=true;
 		}
 		else
@@ -94,13 +94,51 @@ void extract_data(char* chunkData){
 	free(dummy);
 
 	char* vertices_bufferView;
-	extract_subchunk(&dummy,"bufferView",",",buffView_indx,"vertex size");	
+	extract_subchunk(&dummy,"bufferView",",",buffView_indx,"vertices bufferView indx");	
 	extract_value(&vertices_bufferView,':',',',dummy);	
 	fprintf(stdout,"vertices.bufferView=%s\n",vertices_bufferView);
 	free(dummy);
 
-		
+	char* vertices_bufferViewOffset;
+	extract_subchunk(&dummy,"byteOffset",",",buffView_indx,"vertices byteOffset");	
+	extract_value(&vertices_bufferViewOffset,':',',',dummy);	
+	fprintf(stdout,"vertices.bufferViewOffset=%s\n",vertices_bufferViewOffset);
+	free(dummy);
+				
+	
+	found=false;
+	char *buff_indx;
+	indx=0;
+	i=0;
+	//fprintf(stdout, "Searching for buffer[%s]...\n",vertices_bufferView);
+	while(!found&&indx<strlen(buffer_views)){
+		char buffer_s[20];
+		sprintf(buffer_s,"bufferView[%d]",i);
+		extract_subchunk(&buff_indx, "{","}",&buffer_views[indx],buffer_s);
+		if(atoi(vertices_bufferView)==i){
+			//fprintf(stdout,"FOUND buffer[%s]\n",vertices_bufferView);
+			found=true;
+		}
+		else
+		{
+			indx+=strlen(buff_indx);
+			free(buff_indx);
+			i++;
+		}
+	}
+	
+	char* vertices_byteOffset;
+     extract_subchunk(&dummy,"byteOffset",",",buff_indx,"vertices byteOffset");	
+     extract_value(&vertices_byteOffset,':',',',dummy);	
+     fprintf(stdout,"vertices.byteOffset=%s\n",vertices_byteOffset);
+     free(dummy);
 
+
+	char* vertices_byteLength;
+     extract_subchunk(&dummy,"byteLength",",",buff_indx,"vertices byteLength");	
+     extract_value(&vertices_byteLength,':',',',dummy);	
+     fprintf(stdout,"vertices.byteLength=%s\n",vertices_byteLength);
+     free(dummy);
 
 
 
