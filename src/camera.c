@@ -7,6 +7,7 @@
 #include <cglm/vec3.h>
 #include <cglm/cam.h>
 
+#include <logger/logger.h>
 #include <camera.h>
 
 #define CAMERA_DEFAULT_PERSPECTIVE_FOV 45.0f
@@ -14,8 +15,8 @@
 #define CAMERA_DEFAULT_PITCH 0.0f
 
 void camera_create(camera_t* camera, const vec3 position, const vec3 world_up,
-                        const float aspect, const float near, const float far,
-                        const float fov, camera_projection_type type) {
+                   const float aspect, const float near, const float far,
+                   const float fov, camera_projection_type type) {
     memset(camera, 0, sizeof(camera_t));
 
     camera->yaw = CAMERA_DEFAULT_YAW;
@@ -60,7 +61,7 @@ void camera_move(camera_t* camera, direction_t direction, float amount) {
         glm_vec3_scale(camera->right, amount, delta);
         break;
     default:
-        fprintf(stderr, "ERROR: %s: Invalid direction\n", __FUNCTION__);
+        log_error("Invalid direction in %s", __FUNCTION__);
         return;
     }
     glm_vec3_add(camera->position, delta, camera->position);
@@ -112,4 +113,3 @@ void camera_update_view(camera_t* camera) {
     glm_vec3_add(camera->position, camera->front, target);
     glm_lookat(camera->position, target, camera->up, camera->view);
 }
-
