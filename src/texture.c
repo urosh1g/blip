@@ -1,8 +1,11 @@
-#include <texture.h>
-#include <stb_image.h>
 #include <stdlib.h>
+
+#include <stb_image.h>
 #include <cglm/cglm.h>
 #include <glad/glad.h>
+
+#include <logger/logger.h>
+#include <texture.h>
 
 unsigned int tex_load(const char* filename, bool flip_vertically) {
     stbi_set_flip_vertically_on_load(flip_vertically);
@@ -10,10 +13,9 @@ unsigned int tex_load(const char* filename, bool flip_vertically) {
     int width, height, channels_num;
     unsigned char* img = stbi_load(filename, &width, &height, &channels_num, 0);
     if (!img) {
-        fprintf(stderr, "Failed to load img %s\n", filename);
-        fprintf(stderr, "%s\n", stbi_failure_reason());
-    	img = stbi_load("assets/img.png", &width, &height, &channels_num, 0);
-    
+        log_error("Couldn't load image %s. %s", filename,
+                  stbi_failure_reason());
+        img = stbi_load("assets/img.png", &width, &height, &channels_num, 0);
     }
 
     unsigned int texture;

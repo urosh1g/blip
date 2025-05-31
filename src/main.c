@@ -13,6 +13,7 @@
 #include <shader.h>
 #include <camera.h>
 #include <texture.h>
+#include <logger/logger.h>
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 #include <gltf_loader.h>
@@ -104,14 +105,13 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 }
 
 void error_callback(int error_code, const char* description) {
-    fprintf(stderr, "glfw error code: %d\n", error_code);
-    fprintf(stderr, "%s\n", description);
+    log_error("glfw error code: %d. %s", error_code, description);
     exit(EXIT_FAILURE);
 }
 
 GLFWwindow* init_glad_glfw() {
     if (!glfwInit()) {
-        fprintf(stderr, "Failed to init glfw\n");
+        log_error("Failed to init glfw");
         exit(EXIT_FAILURE);
     }
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -122,7 +122,7 @@ GLFWwindow* init_glad_glfw() {
         glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "New window", NULL, NULL);
     if (!window) {
         glfwTerminate();
-        fprintf(stderr, "Failed to create window\n");
+        log_error("Failed to create window");
         exit(EXIT_FAILURE);
     }
     glfwMakeContextCurrent(window);
@@ -147,7 +147,7 @@ GLFWwindow* init_glad_glfw() {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         glfwDestroyWindow(window);
         glfwTerminate();
-        fprintf(stderr, "Failed to init glad\n");
+        log_error("Failed to init glad");
         exit(EXIT_FAILURE);
     }
     return window;
@@ -198,28 +198,13 @@ void vertices_indices_set(float* vertices, unsigned int vert_size, unsigned int*
 }
 
 int main() {
+    FILE* file_log = fopen("log.txt", "w");
+    log_add_sink((log_sink_t){
+        .sink = file_log,
+        .level = LOG_WARN,
+    });
     GLFWwindow* window = init_glad_glfw();
 
-
-//    data* obj;
-//    gltf_load("assets/cube.txt",&obj);
-//    buffers_t * BUF_cube;
-//    vertices_indices_set(obj->vertices, obj->vert_size*sizeof(obj->vertices)*3, obj->indices,obj->ind_size*sizeof(obj->indices), &BUF_cube, false);
-//   
-//    GLuint vs_cube = shader_load("vs_cube.glsl", GL_VERTEX_SHADER);
-//    GLuint fs_cube = shader_load("fs_cube.glsl", GL_FRAGMENT_SHADER);
-//
-//    GLuint shaders_cube[2];
-//    shaders_cube[0] = vs_cube;
-//    shaders_cube[1] = fs_cube;
-//    GLuint program_cube = program_link(shaders_cube, 2);
-//	//////
-//    data* fox;
-//    gltf_load("assets/Fox.txt",&fox);
-//    buffers_t * BUF_fox;
-//    vertices_indices_set(fox->vertices, fox->vert_size*sizeof(fox->vertices)*3, fox->indices,0, &BUF_fox, false);
-//
-    ////
 
     GLuint vert_shader = shader_load("vs.glsl", GL_VERTEX_SHADER);
     GLuint frag_shader = shader_load("fs.glsl", GL_FRAGMENT_SHADER);
@@ -228,16 +213,18 @@ int main() {
     shaders[0] = vert_shader;
     shaders[1] = frag_shader;
     GLuint program = program_link(shaders, 2);
-   float vertices[] = {// coords     //tex_coords
-                        -0.5, 0.5,  0, 0, 1, 
-			-0.5, -0.5, 0, 0, 0,
-                        0.5,  -0.5, 0, 1, 0, 
-			0.5,  0.5,  0, 1, 1};
 
+    log_debug("This is a debug level log.");
+    log_info("This is a info level log.");
+    log_warn("This is a warn level log.");
+    log_error("This is a error level log.");
+    log_fatal("This is a fatal level log.");
+
+    float vertices[] = {// coords	  //tex_coords
+                        -0.5, 0.5,  0, 0, 1, -0.5, -0.5, 0, 0, 0,
+                        0.5,  -0.5, 0, 1, 0, 0.5,  0.5,  0, 1, 1};
     unsigned int indices[] = {0, 1, 2, 0, 2, 3};
     
-    //buffers_t *BUF;
-    //vertices_indices_set(vertices, sizeof(vertices), indices,sizeof(indices), &BUF,true);
     unsigned int VAO, VBO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -259,7 +246,7 @@ int main() {
     glBindVertexArray(0);
 
     unsigned int img_id = tex_load("./assets/img.png", true);
-    (void) img_id;
+    (void)img_id;
     program_use(program);
     glActiveTexture(GL_TEXTURE0);
     tex_bind(img_id);
@@ -270,8 +257,8 @@ int main() {
     vec3 camera_pos = {0, 0, 2};
     vec3 world_up = {0, 1, 0};
     camera_t camera;
-    camera_create(&camera, camera_pos, world_up, 16 / 9.0f, 0.1f,
-                                     100.0f, 45.0f, CAMERA_PERSPECTIVE);
+    camera_create(&camera, camera_pos, world_up, 16 / 9.0f, 0.1f, 100.0f, 45.0f,
+                  CAMERA_PERSPECTIVE);
 
     global_camera = &camera;
     while (!glfwWindowShouldClose(window)) {
@@ -297,25 +284,6 @@ int main() {
         glBindVertexArray(0);
         
 	
-        //program_use(program_cube);
-
-       // GLuint model_id2 = glGetUniformLocation(program_cube, "model");
-       // GLuint view_id2 = glGetUniformLocation(program_cube, "view");
-       // GLuint projection_id2 = glGetUniformLocation(program_cube, "projection");
-       // (void)camera;
-
-       // glUniformMatrix4fv(model_id2, 1, GL_FALSE, (const float*)model);
-       // glUniformMatrix4fv(view_id2, 1, GL_FALSE, (const float*)camera.view);
-       // glUniformMatrix4fv(projection_id2, 1, GL_FALSE,
-       //                    (const float*)camera.projection);
-	
-        //glBindVertexArray(BUF_cube->VAO);
-	//glDrawElements(GL_TRIANGLES, obj->ind_size, GL_UNSIGNED_INT, 0);
-//	glBindVertexArray(0);
-        
-//	glBindVertexArray(BUF_fox->VAO);	
-//	glDrawArrays(GL_TRIANGLES, 0, 10);
-//	glBindVertexArray(0);
 	
 	ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
