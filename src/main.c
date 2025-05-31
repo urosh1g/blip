@@ -13,6 +13,7 @@
 #include <shader.h>
 #include <camera.h>
 #include <texture.h>
+#include <logger/logger.h>
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
@@ -104,14 +105,13 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 }
 
 void error_callback(int error_code, const char* description) {
-    fprintf(stderr, "glfw error code: %d\n", error_code);
-    fprintf(stderr, "%s\n", description);
+    log_error("glfw error code: %d. %s", error_code, description);
     exit(EXIT_FAILURE);
 }
 
 GLFWwindow* init_glad_glfw() {
     if (!glfwInit()) {
-        fprintf(stderr, "Failed to init glfw\n");
+        log_error("Failed to init glfw");
         exit(EXIT_FAILURE);
     }
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -122,7 +122,7 @@ GLFWwindow* init_glad_glfw() {
         glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "New window", NULL, NULL);
     if (!window) {
         glfwTerminate();
-        fprintf(stderr, "Failed to create window\n");
+        log_error("Failed to create window");
         exit(EXIT_FAILURE);
     }
     glfwMakeContextCurrent(window);
@@ -147,13 +147,18 @@ GLFWwindow* init_glad_glfw() {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         glfwDestroyWindow(window);
         glfwTerminate();
-        fprintf(stderr, "Failed to init glad\n");
+        log_error("Failed to init glad");
         exit(EXIT_FAILURE);
     }
     return window;
 }
 
 int main() {
+    FILE* file_log = fopen("log.txt", "w");
+    log_add_sink((log_sink_t){
+        .sink = file_log,
+        .level = LOG_WARN,
+    });
     GLFWwindow* window = init_glad_glfw();
 
     GLuint vert_shader = shader_load("vs.glsl", GL_VERTEX_SHADER);
@@ -163,6 +168,12 @@ int main() {
     shaders[0] = vert_shader;
     shaders[1] = frag_shader;
     GLuint program = program_link(shaders, 2);
+
+    log_debug("This is a debug level log.");
+    log_info("This is a info level log.");
+    log_warn("This is a warn level log.");
+    log_error("This is a error level log.");
+    log_fatal("This is a fatal level log.");
 
     float vertices[] = {// coords	  //tex_coords
                         -0.5, 0.5,  0, 0, 1, -0.5, -0.5, 0, 0, 0,
@@ -190,7 +201,7 @@ int main() {
     glBindVertexArray(0);
 
     unsigned int img_id = tex_load("./assets/img.png", true);
-    (void) img_id;
+    (void)img_id;
     program_use(program);
     glActiveTexture(GL_TEXTURE0);
     tex_bind(img_id);
@@ -201,8 +212,8 @@ int main() {
     vec3 camera_pos = {0, 0, 2};
     vec3 world_up = {0, 1, 0};
     camera_t camera;
-    camera_create(&camera, camera_pos, world_up, 16 / 9.0f, 0.1f,
-                                     100.0f, 45.0f, CAMERA_PERSPECTIVE);
+    camera_create(&camera, camera_pos, world_up, 16 / 9.0f, 0.1f, 100.0f, 45.0f,
+                  CAMERA_PERSPECTIVE);
 
     global_camera = &camera;
 
