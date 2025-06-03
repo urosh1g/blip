@@ -173,4 +173,3 @@ bool gltf_parse(char *filename){
   fclose(glb_fp);
   return true;
 }
-

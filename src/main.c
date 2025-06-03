@@ -153,7 +153,6 @@ GLFWwindow* init_glad_glfw() {
     return window;
 }
 
-
 int main() {
     FILE* file_log = fopen("log.txt", "w");
     log_add_sink((log_sink_t){
@@ -161,6 +160,7 @@ int main() {
         .level = LOG_WARN,
     });
     GLFWwindow* window = init_glad_glfw();
+
 
 
     GLuint vert_shader = shader_load("vs.glsl", GL_VERTEX_SHADER);
@@ -183,6 +183,7 @@ int main() {
                         0.5,  -0.5, 0, 1, 0, 
 			0.5,  0.5,  0, 1, 1};
     unsigned int indices[] = {0, 1, 2, 0, 2, 3};
+    
     unsigned int VAO, VBO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -200,7 +201,6 @@ int main() {
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
 			  (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-
     glBindVertexArray(0);
 
     unsigned int img_id = tex_load("./assets/img.png", true);
