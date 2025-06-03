@@ -15,7 +15,7 @@
 #include <texture.h>
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
-#include <gltf-loader.h>
+#include <gltf_loader.h>
 camera_t* global_camera = NULL;
 float last_x = 0, last_y = 0;
 bool first_pass = true;

@@ -1,4 +1,8 @@
+#ifndef _blip_gltf_laoder
+#define _blip_gltf_loader
+
 #include <stdint.h>
+#include <stdbool.h>
 typedef struct gltf_t{
   char *meshes;
   char *accessors;
@@ -26,12 +30,13 @@ typedef struct chunk_t{
 	char *chunkData;
 } chunk_t;
 
-typedef struct glb_file_t{
+typedef struct glb_t{
 	uint32_t magic;
 	uint32_t version;
 	uint32_t length;
 	chunk_t *chunks;
 	uint32_t chunks_count;
-} glb_file_t;
+} glb_t;
 
 bool gltf_parse(char *filename);
+#endif
