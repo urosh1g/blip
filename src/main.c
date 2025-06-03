@@ -170,14 +170,18 @@ void vertices_indices_set(float* vertices, unsigned int vert_size, unsigned int*
     }
     glGenVertexArrays(1, &(*BUF)->VAO);
     glGenBuffers(1, &(*BUF)->VBO);
-    glGenBuffers(1, &(*BUF)->EBO);
+    if((*BUF)->EBO)
+    	glGenBuffers(1, &(*BUF)->EBO);
     glBindVertexArray((*BUF)->VAO);
     
     glBindBuffer(GL_ARRAY_BUFFER, (*BUF)->VBO);
     glBufferData(GL_ARRAY_BUFFER, vert_size, vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, (*BUF)->EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, ind_size, indices, GL_STATIC_DRAW);
-    
+    if((*BUF)->EBO)
+    {
+	    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, (*BUF)->EBO);
+    	glBufferData(GL_ELEMENT_ARRAY_BUFFER, ind_size, indices, GL_STATIC_DRAW);
+    }
+
     if (has_texture){
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), 0);
     glEnableVertexAttribArray(0);
@@ -197,20 +201,25 @@ int main() {
     GLFWwindow* window = init_glad_glfw();
 
 
-    data* obj;
-    gltf_load("assets/cube.txt",&obj);
-    buffers_t * BUF_cube;
-    vertices_indices_set(obj->vertices, obj->vert_size*sizeof(obj->vertices)*3, obj->indices,obj->ind_size*sizeof(obj->indices), &BUF_cube, false);
-   
-    GLuint vs_cube = shader_load("vs_cube.glsl", GL_VERTEX_SHADER);
-    GLuint fs_cube = shader_load("fs_cube.glsl", GL_FRAGMENT_SHADER);
-
-    GLuint shaders_cube[2];
-    shaders_cube[0] = vs_cube;
-    shaders_cube[1] = fs_cube;
-    GLuint program_cube = program_link(shaders_cube, 2);
-	//////
-
+//    data* obj;
+//    gltf_load("assets/cube.txt",&obj);
+//    buffers_t * BUF_cube;
+//    vertices_indices_set(obj->vertices, obj->vert_size*sizeof(obj->vertices)*3, obj->indices,obj->ind_size*sizeof(obj->indices), &BUF_cube, false);
+//   
+//    GLuint vs_cube = shader_load("vs_cube.glsl", GL_VERTEX_SHADER);
+//    GLuint fs_cube = shader_load("fs_cube.glsl", GL_FRAGMENT_SHADER);
+//
+//    GLuint shaders_cube[2];
+//    shaders_cube[0] = vs_cube;
+//    shaders_cube[1] = fs_cube;
+//    GLuint program_cube = program_link(shaders_cube, 2);
+//	//////
+//    data* fox;
+//    gltf_load("assets/Fox.txt",&fox);
+//    buffers_t * BUF_fox;
+//    vertices_indices_set(fox->vertices, fox->vert_size*sizeof(fox->vertices)*3, fox->indices,0, &BUF_fox, false);
+//
+    ////
 
     GLuint vert_shader = shader_load("vs.glsl", GL_VERTEX_SHADER);
     GLuint frag_shader = shader_load("fs.glsl", GL_FRAGMENT_SHADER);
@@ -219,32 +228,33 @@ int main() {
     shaders[0] = vert_shader;
     shaders[1] = frag_shader;
     GLuint program = program_link(shaders, 2);
-   /*float vertices[] = {// coords     //tex_coords
+   float vertices[] = {// coords     //tex_coords
                         -0.5, 0.5,  0, 0, 1, 
 			-0.5, -0.5, 0, 0, 0,
                         0.5,  -0.5, 0, 1, 0, 
 			0.5,  0.5,  0, 1, 1};
-*/
-    //unsigned int indices[] = {0, 1, 2, 0, 2, 3};
+
+    unsigned int indices[] = {0, 1, 2, 0, 2, 3};
+    
     //buffers_t *BUF;
     //vertices_indices_set(vertices, sizeof(vertices), indices,sizeof(indices), &BUF,true);
-	//    unsigned int VAO, VBO, EBO;
-	//    glGenVertexArrays(1, &VAO);
-	//    glGenBuffers(1, &VBO);
-	//    glGenBuffers(1, &EBO);
-	//    glBindVertexArray(VAO);
+    unsigned int VAO, VBO, EBO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+    glBindVertexArray(VAO);
 
-	//    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	//    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
-	//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
-	//		 GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
+		 GL_STATIC_DRAW);
 
-	//    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
-	//    glEnableVertexAttribArray(0);
-	//    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-	//			  (void*)(3 * sizeof(float)));
-	//    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+			  (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     glBindVertexArray(0);
 
@@ -264,45 +274,48 @@ int main() {
                                      100.0f, 45.0f, CAMERA_PERSPECTIVE);
 
     global_camera = &camera;
-glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
         float current_frame = (float)glfwGetTime();
         delta_time = current_frame - last_frame;
         last_frame = current_frame;
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
-       // program_use(program);
+        program_use(program);
 
-       // GLuint model_id = glGetUniformLocation(program, "model");
-       // GLuint view_id = glGetUniformLocation(program, "view");
-       // GLuint projection_id = glGetUniformLocation(program, "projection");
-       // (void)camera;
-
-       // glUniformMatrix4fv(model_id, 1, GL_FALSE, (const float*)model);
-       // glUniformMatrix4fv(view_id, 1, GL_FALSE, (const float*)camera.view);
-       // glUniformMatrix4fv(projection_id, 1, GL_FALSE,
-       //                    (const float*)camera.projection);
-
-       // glBindVertexArray(BUF->VAO);
-       // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-       // glBindVertexArray(0);
-       // 
-	
-        program_use(program_cube);
-
-        GLuint model_id2 = glGetUniformLocation(program_cube, "model");
-        GLuint view_id2 = glGetUniformLocation(program_cube, "view");
-        GLuint projection_id2 = glGetUniformLocation(program_cube, "projection");
+        GLuint model_id = glGetUniformLocation(program, "model");
+        GLuint view_id = glGetUniformLocation(program, "view");
+        GLuint projection_id = glGetUniformLocation(program, "projection");
         (void)camera;
 
-        glUniformMatrix4fv(model_id2, 1, GL_FALSE, (const float*)model);
-        glUniformMatrix4fv(view_id2, 1, GL_FALSE, (const float*)camera.view);
-        glUniformMatrix4fv(projection_id2, 1, GL_FALSE,
+        glUniformMatrix4fv(model_id, 1, GL_FALSE, (const float*)model);
+        glUniformMatrix4fv(view_id, 1, GL_FALSE, (const float*)camera.view);
+        glUniformMatrix4fv(projection_id, 1, GL_FALSE,
                            (const float*)camera.projection);
-	
-        glBindVertexArray(BUF_cube->VAO);
-	glDrawElements(GL_TRIANGLES, obj->ind_size, GL_UNSIGNED_INT, 0);
+
+        glBindVertexArray(VAO);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
+        
+	
+        //program_use(program_cube);
+
+       // GLuint model_id2 = glGetUniformLocation(program_cube, "model");
+       // GLuint view_id2 = glGetUniformLocation(program_cube, "view");
+       // GLuint projection_id2 = glGetUniformLocation(program_cube, "projection");
+       // (void)camera;
+
+       // glUniformMatrix4fv(model_id2, 1, GL_FALSE, (const float*)model);
+       // glUniformMatrix4fv(view_id2, 1, GL_FALSE, (const float*)camera.view);
+       // glUniformMatrix4fv(projection_id2, 1, GL_FALSE,
+       //                    (const float*)camera.projection);
+	
+        //glBindVertexArray(BUF_cube->VAO);
+	//glDrawElements(GL_TRIANGLES, obj->ind_size, GL_UNSIGNED_INT, 0);
+//	glBindVertexArray(0);
+        
+//	glBindVertexArray(BUF_fox->VAO);	
+//	glDrawArrays(GL_TRIANGLES, 0, 10);
+//	glBindVertexArray(0);
 	
 	ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -321,11 +334,10 @@ glEnable(GL_DEPTH_TEST);
     ImGui_ImplGlfw_Shutdown();
     igDestroyContext(imgui_ctx);
 
-    /*glDeleteVertexArrays(1, &BUF->VAO);
-glDeleteBuffers(1,&BUF->VBO);
-glDeleteBuffers(1,&BUF->EBO);
-free(BUF);
-*/
+    glDeleteVertexArrays(1, &VAO);
+	glDeleteBuffers(1,&VBO);
+	glDeleteBuffers(1,&EBO);
+
     glfwDestroyWindow(window);
     glfwTerminate();
 
