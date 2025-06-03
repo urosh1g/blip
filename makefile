@@ -52,9 +52,9 @@ clang-format:
 
 configure: compile_commands.json clang-format
 
-tests: $(TEST_EXECUTABLES) $(OBJ_DIR)/entity.o  $(OBJ_DIR)/gltf_loader.o
+tests: $(TEST_EXECUTABLES) $(OBJ_DIR)/entity.o
 
-$(TEST_DIR)/%.out: $(TEST_DIR)/%.c $(OBJ_DIR)/entity.o $(OBJ_DIR)/gltf_loader.o 
+$(TEST_DIR)/%.out: $(TEST_DIR)/%.c $(OBJ_DIR)/entity.o $(OBJ_DIR)/gltf_loader.o  $(OBJ_DIR)/logger.o 
 	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -L$(LIB_DIR) $^ -o $@ $(LDARGS)
 
 clean:

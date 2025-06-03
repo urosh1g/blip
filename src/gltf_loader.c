@@ -25,8 +25,7 @@ void extract_section_between_tags(char **extracted_section, char *start_tag,
   strncpy((*extracted_section), start, end - start + strlen(end_tag));
   (*extracted_section)[end - start + strlen(end_tag)] = '\0';
   (void) field_name;
-  log_debug("\nfound %s\n",field_name);
-  log_debug("%s\n",(*extracted_section));
+  log_debug("found %s\n%s",field_name,(*extracted_section));
 }
 
 void extract_field_value(char **subchunk, char *startstr, char *chunk,
@@ -45,7 +44,7 @@ void extract_field_value(char **subchunk, char *startstr, char *chunk,
   *subchunk = malloc(end - start + 1);
   strncpy((*subchunk), start, end - start);
   (*subchunk)[end - start] = '\0';
-  log_debug("%s=%s\n", field_name, (*subchunk));
+  log_debug("%s=%s", field_name, (*subchunk));
   free(dummy);
 }
 
@@ -54,13 +53,13 @@ bool find_section_by_index(char **result, char *chunk, uint32_t target_index) {
   uint32_t offset = 0;
   uint32_t i = 0;
   uint32_t max_length = strlen(chunk);
-  log_debug("Searching for section[%d]...\n",target_index);
+  log_debug("Searching for section[%d]...",target_index);
   while (!found && offset < max_length) {
     char section_s[20];
     sprintf(section_s, "section[%d]", i);
     extract_section_between_tags(result, "{", "}", &chunk[offset], section_s);
     if (i == target_index) {
-      log_debug("FOUND section[%s]\n",target_index);
+      log_debug("FOUND section[%s]",target_index);
       found = true;
     } else {
       offset += strlen(*result);
@@ -79,7 +78,7 @@ void parse_chunk(char *chunkData) {
                                chunkData, "bufferViews");
   extract_section_between_tags(&chunk.accessors, "accessors", "}]", chunkData,
                                "accessors");
-  log_debug("\nExtracting vertices accessor...\n");
+  log_debug("Extracting vertices accessor...");
   char *POSITION;
   extract_field_value(&POSITION, "POSITION", chunk.meshes, "POSITION");
 
@@ -127,19 +126,19 @@ bool gltf_parse(char *filename){
   glb_t glb;
   fread(&glb.magic, sizeof(uint32_t), 1, glb_fp);
   if (glb.magic != 0x46546C67) {
-    log_error("%s not a gltf file\n",filename);
+    log_error("%s not a gltf file",filename);
     fclose(glb_fp);
     return false;
   }
   fread(&glb.version, sizeof(uint32_t), 1, glb_fp);
   if (glb.version != 2) {
-    log_error("%s is not version .gltf 2.0\n",filename);
+    log_error("%s is not version .gltf 2.0",filename);
     fclose(glb_fp);
     return false;
   }
   fread(&glb.length, sizeof(uint32_t), 1, glb_fp);
 
-  log_info("version=%d length=%d\n", glb.version, glb.length);
+  log_info("version=%d length=%d", glb.version, glb.length);
 
   uint32_t chunk_len, chunk_type;
   size_t i = 0;
@@ -152,11 +151,11 @@ bool gltf_parse(char *filename){
     type = chunk_type == 0x4E4F534A   ? "JSON"
            : chunk_type == 0x004E4942 ? "BIN"
                                       : "unknown";
-    log_info("\n%ld. chunk, chunk_len=%d, chunk_type=%s\n", i, chunk_len,
+    log_info("%ld. chunk, chunk_len=%d, chunk_type=%s", i, chunk_len,
             type);
     char *chunkData = malloc(sizeof(char) * chunk_len);
     fread(chunkData, chunk_len, 1, glb_fp);
-    log_info("%s\n", chunkData);
+    log_info("%s", chunkData);
     if (strcmp(type,"JSON")==0 )
     {
     parse_chunk(chunkData);
@@ -169,7 +168,7 @@ bool gltf_parse(char *filename){
   if(glb.length!=length_read){
   	fprintf(stderr,"Error reading bytes. Read %d expected %d\n",length_read,glb.length);
   }
-  log_debug("Finished reading %d bytes.\n",length_read);
+  log_debug("Finished reading %d bytes.",length_read);
   fclose(glb_fp);
   return true;
 }

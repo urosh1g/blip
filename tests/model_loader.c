@@ -1,4 +1,4 @@
-#include "gltf_loader.h"
+#include <gltf_loader.h>
 #include <stdio.h>
 int main(){
 	glb_t glb;
