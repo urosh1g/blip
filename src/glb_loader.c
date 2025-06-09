@@ -8,24 +8,40 @@
 #define COMPTYPE_USHORT 5123
 
 
-void extract_section_between_tags(char **extracted_section, char *start_tag,
-                                  char *end_tag, char *chunk,
+
+void extract_section(char **extracted_section, 
+				  char *start_tag,
+                                  char *chunk,
                                   char *field_name) {
   char *start = strstr(chunk, start_tag);
-  if (!start)
-    return;
-  char *end = strstr(start, end_tag);
-  if (!end)
-    end_tag = "}";
-  end = strstr(start, end_tag);
-  if (!end)
-    return;
-
-  *extracted_section = malloc(end - start + strlen(end_tag) + 1);
-  strncpy((*extracted_section), start, end - start + strlen(end_tag));
-  (*extracted_section)[end - start + strlen(end_tag)] = '\0';
-  (void) field_name;
+  if(!start) return; 
+  uint32_t parenthesis=1;
+  if(start_tag[0]!='{'&&start_tag[0]!='[')
+  {
+	  start=strstr(start,"\":"); 
+  	  start+=2;
+  } 
+  char *p=start;
+  while(strlen(p)>0&&parenthesis!=0){
+  	p++;
+	if(*p=='{'||*p=='[') parenthesis++;
+	if(*p=='}'||*p==']') parenthesis--;
+  }
+  *extracted_section = malloc(p - start + 2);
+  strncpy((*extracted_section), start, p - start+1);
+  (*extracted_section)[p - start+1] = '\0';
   log_debug("found %s\n%s",field_name,(*extracted_section));
+}
+
+
+void extract_section_between_tags(char **result, char* start_tag, char* end_tag, char* chunk, char* field_name){
+  char *start = strstr(chunk, start_tag);
+  char *end =strstr(start,end_tag);
+  *result = malloc(end - start + 2);
+  strncpy((*result), start, end - start+1);
+  (*result)[end - start+1] = '\0';
+  log_debug("found %s\n%s",field_name,(*result));
+
 }
 
 void extract_field_value(char **subchunk, char *startstr, char *chunk,
@@ -57,9 +73,9 @@ bool find_section_by_index(char **result, char *chunk, uint32_t target_index) {
   while (!found && offset < max_length) {
     char section_s[20];
     sprintf(section_s, "section[%d]", i);
-    extract_section_between_tags(result, "{", "}", &chunk[offset], section_s);
+    extract_section(result, "{", &chunk[offset], section_s);
     if (i == target_index) {
-      log_debug("FOUND section[%s]",target_index);
+      log_debug("FOUND section[%d]",target_index);
       found = true;
     } else {
       offset += strlen(*result);
@@ -70,24 +86,13 @@ bool find_section_by_index(char **result, char *chunk, uint32_t target_index) {
   return found;
 }
 
-void parse_chunk(char *chunkData) {
-  gltf_t chunk;
-  extract_section_between_tags(&chunk.meshes, "meshes", "}]", chunkData,
-                               "meshes");
-  extract_section_between_tags(&chunk.bufferViews, "bufferViews", "}]",
-                               chunkData, "bufferViews");
-  extract_section_between_tags(&chunk.accessors, "accessors", "}]", chunkData,
-                               "accessors");
-  log_debug("Extracting vertices accessor...");
-  char *POSITION;
-  extract_field_value(&POSITION, "POSITION", chunk.meshes, "POSITION");
-
+void bufferData_parse(char* chunkData){
+	(void) chunkData;
+/*
   char *buffView_indx;
   bool found =
       find_section_by_index(&buffView_indx, chunk.accessors, atoi(POSITION));
   if (!found)
-    return;
-
   accessor_t vertices;
   extract_field_value(&vertices.bufferView, "bufferView", buffView_indx,
                       "vertices.bufferView");
@@ -113,62 +118,125 @@ void parse_chunk(char *chunkData) {
 
   char *buffers;
   extract_section_between_tags(&buffers, "buffers", "}]", chunkData, "buffers");
+
+
+ * */
+}
+void mesh_parse(char* mesh_str){
+  log_debug("Parsing mesh...");
+ 
+  char* primitives;
+  extract_section(&primitives, "primitives", mesh_str, "primitives");
+  
+  uint32_t offset = 0;
+  uint32_t i = 0;
+  uint32_t max_length = strlen(primitives)-2;
+  while (offset < max_length) {
+    log_debug("Getting primitive[%d]...",i);
+    char* primitive;
+    extract_section(&primitive, "{", &primitives[offset], "primitive");
+    char *POSITION;
+    extract_field_value(&POSITION, "POSITION", primitive, "POSITION");
+    char *NORMAL;
+    extract_field_value(&NORMAL, "NORMAL", primitive, "NORMAL");
+    offset += strlen(primitive);
+    i++;
+  }
+  
+
+}
+void meshes_parse(char* chunk){
+	
+  uint32_t i = 0, offset=0;
+  uint32_t max_length = strlen(chunk);
+  log_info("Parsing meshes...");
+  while (offset < max_length) { 
+  	char *mesh;
+ 	extract_section(&mesh, "{", &chunk[offset], "mesh");
+  	mesh_parse(mesh);
+	offset += strlen(mesh);
+      	i++;
+  }
+}
+
+bool gltf_parse(char *chunkData, gltf_t **gltf) {
+  (*gltf)=malloc(sizeof(gltf_t));
+  extract_section(&(*gltf)->meshes, "meshes", chunkData,
+                           "meshes");
+  extract_section(&(*gltf)->bufferViews, "bufferViews",
+                               chunkData, "bufferViews");
+  extract_section(&(*gltf)->accessors, "accessors", chunkData,
+                               "accessors");
+  return true;
 }
 
 
-bool glb_parse(char *filename){
+bool glb_parse(char *filename, glb_t **glb){
   FILE *glb_fp = fopen(filename, "r");
+  uint32_t length_read = 0;
+  
   if (!glb_fp) {
     log_error("Error reading file %s", filename);
-    return -1;
+    return false;
   }
   
-  glb_t glb;
-  fread(&glb.magic, sizeof(uint32_t), 1, glb_fp);
-  if (glb.magic != 0x46546C67) {
+  (*glb)=malloc(sizeof(glb_t));
+  fread(&(*glb)->magic, sizeof(uint32_t), 1, glb_fp);
+  if ((*glb)->magic != 0x46546C67) {
     log_error("%s not a gltf file",filename);
     fclose(glb_fp);
     return false;
   }
-  fread(&glb.version, sizeof(uint32_t), 1, glb_fp);
-  if (glb.version != 2) {
+  length_read+=sizeof(uint32_t);
+  
+  fread(&(*glb)->version, sizeof(uint32_t), 1, glb_fp);
+  if ((*glb)->version != 2) {
     log_error("%s is not version .gltf 2.0",filename);
     fclose(glb_fp);
     return false;
   }
-  fread(&glb.length, sizeof(uint32_t), 1, glb_fp);
-
-  log_info("version=%d length=%d", glb.version, glb.length);
-
-  uint32_t chunk_len, chunk_type;
+  length_read+=sizeof(uint32_t);
+  
+  fread(&(*glb)->length, sizeof(uint32_t), 1, glb_fp);
+  length_read+=sizeof(uint32_t);
+  
+  log_info("version=%d length=%d", (*glb)->version, (*glb)->length);
+ 
+  dynarr_chunk_init(&(*glb)->chunks);
   size_t i = 0;
-  uint32_t length_read = 3*sizeof(uint32_t);
-  while (length_read < glb.length) {
-    fread(&chunk_len, sizeof(uint32_t), 1, glb_fp);
+  uint32_t chunk_type;
+  while (length_read < (*glb)->length) {
+    chunk_t chunk;
+    
+    fread(&chunk.chunkLength, sizeof(uint32_t), 1, glb_fp);
     fread(&chunk_type, sizeof(uint32_t), 1, glb_fp);
-    length_read+=2*sizeof(uint32_t);
-    char *type;
-    type = chunk_type == 0x4E4F534A   ? "JSON"
+    chunk.chunkType = chunk_type ==  0x4E4F534A ? "JSON"
            : chunk_type == 0x004E4942 ? "BIN"
                                       : "unknown";
-    log_info("%ld. chunk, chunk_len=%d, chunk_type=%s", i, chunk_len,
-            type);
-    char *chunkData = malloc(sizeof(char) * chunk_len);
-    fread(chunkData, chunk_len, 1, glb_fp);
-    log_info("%s", chunkData);
-    if (strcmp(type,"JSON")==0 )
-    {
-    parse_chunk(chunkData);
-    }
-    free(chunkData);
+    log_info("%ld. chunk, chunkLen=%d, chunkType=%s", i, chunk.chunkLength,
+            chunk.chunkType);
+    length_read+=2*sizeof(uint32_t);
+    
+    chunk.chunkData = malloc(sizeof(char) * chunk.chunkLength);
+    fread(chunk.chunkData, chunk.chunkLength, 1, glb_fp);
+    
+    //if (strcmp(chunk.chunkType,"JSON")==0 )
+    //{
+    //	gltf_parse(chunk.chunkData);
+    //    log_info("%s", chunk.chunkData);
+    //}
+    
     i++;
-    length_read += chunk_len;
+    length_read += chunk.chunkLength;
+    dynarr_chunk_push(&(*glb)->chunks,chunk);
+  }
 
+  if((*glb)->length!=length_read){
+  	log_error("Error reading bytes. Read %d expected %d\n",length_read,(*glb)->length);
   }
-  if(glb.length!=length_read){
-  	fprintf(stderr,"Error reading bytes. Read %d expected %d\n",length_read,glb.length);
-  }
-  log_debug("Finished reading %d bytes.",length_read);
+  (*glb)->chunks_count=i;
+  
+  log_info("Finished reading %d bytes.",length_read);
   fclose(glb_fp);
   return true;
 }
