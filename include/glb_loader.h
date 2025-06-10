@@ -35,14 +35,6 @@ typedef enum type_t{
 	MAT4=16
 }type_t;
 
-typedef struct accessor_t {
-  /*uint32_t*/ char *index;
-  /*uint32_t*/ char *count;				//required
-  /*componentType_t*/ char *componentType;		//required
-  /*type_t*/ char *type;					//required
-  /*uint32_t*/ char *bufferView;
-  /*uint32_t*/ char *byteOffset;
-} accessor_t;
 
 typedef struct bufferView_t {
   /*uint32_t*/char * index;				//required
@@ -50,6 +42,19 @@ typedef struct bufferView_t {
   /*uint32_t*/char * byteLength;				//requred
 } bufferView_t;
 
+
+
+
+typedef struct accessor_t {
+  uint32_t index;
+  uint32_t count;				//required
+  componentType_t componentType;		//required
+  type_t   type;					//required
+  uint32_t bufferView;
+  uint32_t byteOffset;
+} accessor_t;
+
+dynarr_define_for(accessor_t,accessor);
 htable_define_for(uint32_t,attributes);
 
 typedef struct primitive_t {
@@ -88,7 +93,7 @@ typedef struct glb_t{
 
 
 void bufferViews_parse(char *chunk);
-void accessors_parse(char *chunk);
+void accessors_parse(char *chunk, dynarr_accessor_t **accessors);
 void meshes_parse(char *chunk, dynarr_mesh_t **meshes);
 bool glb_parse(char *filename, glb_t **glb);
 bool gltf_parse(char *chunkData, gltf_t **gltf);

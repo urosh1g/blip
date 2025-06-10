@@ -40,7 +40,11 @@ void extract_section_between_tags(char **result, char* start_tag, char* end_tag,
 	  log_debug("Couldn't find %s",start_tag);
 	  return;
   }
+  log_info("start is %s",start);
   char *end =strstr(start,end_tag);
+  if(!end) {
+    end =strstr(start,"}");
+  }
   *result = malloc(end - start + 2);
   strncpy((*result), start, end - start+1);
   (*result)[end - start+1] = '\0';
@@ -110,35 +114,66 @@ void bufferViews_parse(char* chunkData){
 
  *
  * */
-	(void) chunkData;
+ (void) chunkData;
 }
 
-void accessors_parse(char* chunkData){
- (void) chunkData;
-       	/*char *buffView_indx;
-  bool found =
-      find_section_by_index(&buffView_indx, chunk.accessors, atoi(POSITION));
-  if (!found)
-  accessor_t vertices;
-  extract_field_value(&vertices.bufferView, "bufferView", buffView_indx,
-                      "vertices.bufferView");
-  extract_field_value(&vertices.byteOffset, "byteOffset", buffView_indx,
-                      "vertices.bufferViewOffset");
-  extract_field_value(&vertices.componentType, "componentType", buffView_indx,
-                      "vertices.componentType");
-  extract_field_value(&vertices.count, "count", buffView_indx,
-                      "vertices.count");
-  extract_field_value(&vertices.type, "type", buffView_indx, "vertices.type");
-*/
+accessor_t accessor_parse(char* accessor_s){
+  log_info("%s",accessor_s);
+
+  accessor_t a;
+  char *bufferView, *byteOffset, *componentType, *count, *type;
+  extract_field_value(&bufferView, "bufferView", accessor_s,
+                      "accessor.bufferView");
+  extract_field_value(&byteOffset, "byteOffset", accessor_s,
+                      "accessor.byteOffset");
+  extract_field_value(&componentType, "componentType", accessor_s,
+                      "accessor.componentType");
+  extract_field_value(&count, "count", accessor_s,
+                      "accessor.count");
+  extract_field_value(&type, "type", accessor_s, "accessor.type"); 
+  
+  a.bufferView=atoi(bufferView);
+  a.byteOffset=atoi(byteOffset);
+  a.componentType=atoi(componentType);
+  a.count=atoi(count);
+  a.type=atoi(type);
+  
+  
+  free(bufferView);
+  free(byteOffset);
+  free(componentType);
+  free(count);
+  free(type);
+  return a;
 }
-void mesh_parse(char* mesh_str, mesh_t **mesh){
+
+void accessors_parse(char* accessors_s, dynarr_accessor_t **accessors){
+  (*accessors)=malloc(sizeof(dynarr_accessor_t));
+  dynarr_accessor_init(*accessors);
+  uint32_t i = 0, offset=0;
+  uint32_t max_length = strlen(accessors_s)-2;
+  log_info("Parsing accessors...");
+  while (offset < max_length && i==0) { 
+  	char *accessor_s;
+ 	extract_section(&accessor_s, "{", &accessors_s[offset], "accessor");
+
+	accessor_t a=accessor_parse(accessor_s);
+	a.index=i;
+	dynarr_accessor_push(*accessors, a);
+
+	offset += strlen(accessor_s);
+      	i++;
+	free(accessor_s);
+  }
+}
+mesh_t mesh_parse(char* mesh_str){
   log_debug("Parsing mesh...");
  
   char* primitives;
   extract_section(&primitives, "primitives", mesh_str, "primitives");
- 
-  *mesh=malloc(sizeof(mesh_t));
-  dynarr_primitive_init(&(*mesh)->primitives); 
+  
+  mesh_t mesh; 
+  dynarr_primitive_init(&mesh.primitives); 
   uint32_t offset = 0;
   uint32_t i = 0;
   uint32_t max_length = strlen(primitives)-2;
@@ -146,12 +181,14 @@ void mesh_parse(char* mesh_str, mesh_t **mesh){
     log_debug("Getting primitive[%d]...",i);
     char* primitive_str;
     extract_section(&primitive_str, "{", primitives, "primitive");
+    
     primitive_t p; 
+    htable_attributes_init(&p.attributes,NULL);
+    
     char *mode;
     extract_field_value(&mode, "mode", primitive_str, "mode");
     p.mode=mode?atoi(mode):RENDERMODE_DEFAULT;
     
-    htable_attributes_init(&p.attributes,NULL);
     char *POSITION;
     extract_field_value(&POSITION, "POSITION", primitive_str, "POSITION");
     htable_attributes_insert(&p.attributes,"POSITION",atoi(POSITION));
@@ -160,11 +197,17 @@ void mesh_parse(char* mesh_str, mesh_t **mesh){
     extract_field_value(&indices, "indices", primitive_str, "indices");
     htable_attributes_insert(&p.attributes,"indices",atoi(indices));
     
-    dynarr_primitive_push(&(*mesh)->primitives,p);
+    dynarr_primitive_push(&mesh.primitives,p);
     offset += strlen(primitive_str);
     i++;
-  }
 
+    free(indices);
+    free(POSITION);
+    free(mode);
+    free(primitive_str);
+  }
+  free(primitives);
+  return mesh;
 }
 void meshes_parse(char* chunk, dynarr_mesh_t** meshes){
   (*meshes)=malloc(sizeof(meshes));
@@ -175,9 +218,8 @@ void meshes_parse(char* chunk, dynarr_mesh_t** meshes){
   while (offset < max_length) { 
   	char *mesh;
  	extract_section(&mesh, "{", &chunk[offset], "mesh");
-	mesh_t *m;
-  	mesh_parse(mesh,&m);
-	dynarr_mesh_push(*meshes,*m);
+  	mesh_t m=mesh_parse(mesh);
+	dynarr_mesh_push(*meshes,m);
 	offset += strlen(mesh);
       	i++;
 	free(mesh);
