@@ -6,14 +6,14 @@
 #include <datastructs/data_structures.h>
 
 typedef enum render_mode_t{
-	POINTS,
-	LINES,
-	LINE_LOOP,
-	LINE_STRIP,
-	TRIANGLES,
-	TRIANGLE_STRIP,
-	TRIANGLE_FAN,
-	DEFAULT=4
+	RENDERMODE_POINTS,
+	RENDERMODE_LINES,
+	RENDERMODE_LINE_LOOP,
+	RENDERMODE_LINE_STRIP,
+	RENDERMODE_TRIANGLES,
+	RENDERMODE_TRIANGLE_STRIP,
+	RENDERMODE_TRIANGLE_FAN,
+	RENDERMODE_DEFAULT=4
 }render_mode_t;
 
 typedef enum componentType_t{
@@ -50,30 +50,19 @@ typedef struct bufferView_t {
   /*uint32_t*/char * byteLength;				//requred
 } bufferView_t;
 
-
-htable_define_for(uint32_t,uint32);
+htable_define_for(uint32_t,attributes);
 
 typedef struct primitive_t {
    	render_mode_t mode;
+	htable_attributes_t attributes;
 }primitive_t;
 
 dynarr_define_for(primitive_t, primitive);
 
-
-
-
-
-
 typedef struct mesh_t{
 	dynarr_primitive_t primitives;
 }mesh_t;
-
-
-
-
-
-
-
+dynarr_define_for(mesh_t,mesh);
 
 typedef struct gltf_t{
   char *meshes;
@@ -97,7 +86,13 @@ typedef struct glb_t{
 	uint32_t chunks_count;
 } glb_t;
 
-void meshes_parse(char* meshes);
+
+void bufferViews_parse(char *chunk);
+void accessors_parse(char *chunk);
+void meshes_parse(char *chunk, dynarr_mesh_t **meshes);
 bool glb_parse(char *filename, glb_t **glb);
-bool gltf_parse(char* chunkData, gltf_t **gltf);
+bool gltf_parse(char *chunkData, gltf_t **gltf);
+
+void glb_free(glb_t* glb);
+void mesh_free(mesh_t free);
 #endif

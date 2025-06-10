@@ -36,6 +36,10 @@ void extract_section(char **extracted_section,
 
 void extract_section_between_tags(char **result, char* start_tag, char* end_tag, char* chunk, char* field_name){
   char *start = strstr(chunk, start_tag);
+  if(!start) {
+	  log_debug("Couldn't find %s",start_tag);
+	  return;
+  }
   char *end =strstr(start,end_tag);
   *result = malloc(end - start + 2);
   strncpy((*result), start, end - start+1);
@@ -48,6 +52,7 @@ void extract_field_value(char **subchunk, char *startstr, char *chunk,
                          char *field_name) {
   char *dummy;
   extract_section_between_tags(&dummy, startstr, ",", chunk, field_name);
+  if(!dummy) return;
   char *start = strchr(dummy, ':');
   if (!start)
     return;
@@ -86,24 +91,8 @@ bool find_section_by_index(char **result, char *chunk, uint32_t target_index) {
   return found;
 }
 
-void bufferData_parse(char* chunkData){
-	(void) chunkData;
+void bufferViews_parse(char* chunkData){
 /*
-  char *buffView_indx;
-  bool found =
-      find_section_by_index(&buffView_indx, chunk.accessors, atoi(POSITION));
-  if (!found)
-  accessor_t vertices;
-  extract_field_value(&vertices.bufferView, "bufferView", buffView_indx,
-                      "vertices.bufferView");
-  extract_field_value(&vertices.byteOffset, "byteOffset", buffView_indx,
-                      "vertices.bufferViewOffset");
-  extract_field_value(&vertices.componentType, "componentType", buffView_indx,
-                      "vertices.componentType");
-  extract_field_value(&vertices.count, "count", buffView_indx,
-                      "vertices.count");
-  extract_field_value(&vertices.type, "type", buffView_indx, "vertices.type");
-
   char *buff_indx;
   found = find_section_by_index(&buff_indx, chunk.bufferViews,
                                 atoi(vertices.bufferView));
@@ -119,43 +108,79 @@ void bufferData_parse(char* chunkData){
   char *buffers;
   extract_section_between_tags(&buffers, "buffers", "}]", chunkData, "buffers");
 
-
+ *
  * */
+	(void) chunkData;
 }
-void mesh_parse(char* mesh_str){
+
+void accessors_parse(char* chunkData){
+ (void) chunkData;
+       	/*char *buffView_indx;
+  bool found =
+      find_section_by_index(&buffView_indx, chunk.accessors, atoi(POSITION));
+  if (!found)
+  accessor_t vertices;
+  extract_field_value(&vertices.bufferView, "bufferView", buffView_indx,
+                      "vertices.bufferView");
+  extract_field_value(&vertices.byteOffset, "byteOffset", buffView_indx,
+                      "vertices.bufferViewOffset");
+  extract_field_value(&vertices.componentType, "componentType", buffView_indx,
+                      "vertices.componentType");
+  extract_field_value(&vertices.count, "count", buffView_indx,
+                      "vertices.count");
+  extract_field_value(&vertices.type, "type", buffView_indx, "vertices.type");
+*/
+}
+void mesh_parse(char* mesh_str, mesh_t **mesh){
   log_debug("Parsing mesh...");
  
   char* primitives;
   extract_section(&primitives, "primitives", mesh_str, "primitives");
-  
+ 
+  *mesh=malloc(sizeof(mesh_t));
+  dynarr_primitive_init(&(*mesh)->primitives); 
   uint32_t offset = 0;
   uint32_t i = 0;
   uint32_t max_length = strlen(primitives)-2;
   while (offset < max_length) {
     log_debug("Getting primitive[%d]...",i);
-    char* primitive;
-    extract_section(&primitive, "{", &primitives[offset], "primitive");
+    char* primitive_str;
+    extract_section(&primitive_str, "{", primitives, "primitive");
+    primitive_t p; 
+    char *mode;
+    extract_field_value(&mode, "mode", primitive_str, "mode");
+    p.mode=mode?atoi(mode):RENDERMODE_DEFAULT;
+    
+    htable_attributes_init(&p.attributes,NULL);
     char *POSITION;
-    extract_field_value(&POSITION, "POSITION", primitive, "POSITION");
-    char *NORMAL;
-    extract_field_value(&NORMAL, "NORMAL", primitive, "NORMAL");
-    offset += strlen(primitive);
+    extract_field_value(&POSITION, "POSITION", primitive_str, "POSITION");
+    htable_attributes_insert(&p.attributes,"POSITION",atoi(POSITION));
+    
+    char *indices;
+    extract_field_value(&indices, "indices", primitive_str, "indices");
+    htable_attributes_insert(&p.attributes,"indices",atoi(indices));
+    
+    dynarr_primitive_push(&(*mesh)->primitives,p);
+    offset += strlen(primitive_str);
     i++;
   }
-  
 
 }
-void meshes_parse(char* chunk){
-	
+void meshes_parse(char* chunk, dynarr_mesh_t** meshes){
+  (*meshes)=malloc(sizeof(meshes));
+  dynarr_mesh_init(*meshes);
   uint32_t i = 0, offset=0;
-  uint32_t max_length = strlen(chunk);
+  uint32_t max_length = strlen(chunk)-2;
   log_info("Parsing meshes...");
   while (offset < max_length) { 
   	char *mesh;
  	extract_section(&mesh, "{", &chunk[offset], "mesh");
-  	mesh_parse(mesh);
+	mesh_t *m;
+  	mesh_parse(mesh,&m);
+	dynarr_mesh_push(*meshes,*m);
 	offset += strlen(mesh);
       	i++;
+	free(mesh);
   }
 }
 
@@ -219,12 +244,6 @@ bool glb_parse(char *filename, glb_t **glb){
     
     chunk.chunkData = malloc(sizeof(char) * chunk.chunkLength);
     fread(chunk.chunkData, chunk.chunkLength, 1, glb_fp);
-    
-    //if (strcmp(chunk.chunkType,"JSON")==0 )
-    //{
-    //	gltf_parse(chunk.chunkData);
-    //    log_info("%s", chunk.chunkData);
-    //}
     
     i++;
     length_read += chunk.chunkLength;

@@ -14,8 +14,12 @@ int main(){
 	log_debug((glb->chunks).elems[0].chunkData);
 	gltf_t *gltf;
 	gltf_parse((glb->chunks).elems[0].chunkData, &gltf);
-	meshes_parse(gltf->meshes);
-
+	dynarr_mesh_t *meshes;
+	meshes_parse(gltf->meshes, &meshes);
+	
+	
+	
+	free(meshes);
 	free(gltf);
 	free(glb);
 	return 0;
