@@ -99,12 +99,34 @@ bool find_section_by_index(char **result, char *chunk, uint32_t target_index) {
   return found;
 }
 
-void extra_stuff(){
-/*
- *
-  char *buffers;
-  extract_section_between_tags(&buffers, "buffers", "}]", chunkData, "buffers");
- * */
+gltfbuff_t gltfbuff_parse(char* buff_s){
+	gltfbuff_t b;
+	char* byteLength;
+	extract_field_value(&byteLength,"byteLength",buff_s,"buffer.byteLength");
+	b.byteLength=atoi(byteLength);
+	return b;
+}
+
+void gltfbuffs_parse(char* gltfbuffs_s, dynarr_gltfbuff_t **buffs){
+  (*buffs)=malloc(sizeof(dynarr_gltfbuff_t));
+  dynarr_gltfbuff_init(*buffs);
+  
+  uint32_t i = 0, offset=0;
+  uint32_t max_length = strlen(gltfbuffs_s)-2;
+  log_info("Parsing buffers...");
+  while (offset+i < max_length) { 
+  	char *gltfbuff_s;
+ 	extract_section(&gltfbuff_s, "{", &gltfbuffs_s[offset], "gltfbuff");
+	
+	gltfbuff_t b=gltfbuff_parse(gltfbuff_s);
+	dynarr_gltfbuff_push(*buffs,b);
+	
+	offset += strlen(gltfbuff_s);
+	i++;
+	free(gltfbuff_s);
+  }
+
+
 }
 
 bufferView_t bufferView_parse(char* bufferView_s){
@@ -279,6 +301,9 @@ bool gltf_parse(char *chunkData, gltf_t **gltf) {
                                chunkData, "bufferViews");
   extract_section(&(*gltf)->accessors, "accessors", chunkData,
                                "accessors");
+  extract_section(&(*gltf)->buffers, "buffers", chunkData,
+                               "buffers");
+ 
   return true;
 }
 
@@ -363,5 +388,6 @@ void glb_destroy(glb_t *glb){
 void gltf_destroy(gltf_t *gltf){
 	free(gltf->meshes);
 	free(gltf->accessors);
-	free(gltf->bufferViews);	
+	free(gltf->bufferViews);
+	free(gltf->buffers);	
 }

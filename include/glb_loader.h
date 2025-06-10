@@ -40,6 +40,9 @@ typedef enum type_t{
 	MAT4=16
 }type_t;
 
+typedef struct gltfbuff_t{
+	uint32_t byteLength;
+}gltfbuff_t;
 
 typedef struct bufferView_t {
   uint32_t buffer;			//required
@@ -77,6 +80,7 @@ typedef struct gltf_t{
   char *meshes;
   char *accessors;
   char *bufferViews;
+  char *buffers;
 } gltf_t;
 
 typedef struct chunk_t{
@@ -94,8 +98,10 @@ typedef struct glb_t{
 	uint32_t chunks_count;
 } glb_t;
 
+dynarr_define_for(gltfbuff_t, gltfbuff);
 dynarr_define_for(bufferView_t,bufferView);
 
+void gltfbuffs_parse(char *chunk, dynarr_gltfbuff_t **buffs);
 void bufferViews_parse(char *chunk, dynarr_bufferView_t **buffViews);
 void accessors_parse(char *chunk, dynarr_accessor_t **accessors);
 void meshes_parse(char *chunk, dynarr_mesh_t **meshes);

@@ -20,10 +20,14 @@ int main(){
 	accessors_parse(gltf->accessors,&accessors);	
 	dynarr_bufferView_t *bufferViews;
 	bufferViews_parse(gltf->bufferViews,&bufferViews);	
+	dynarr_gltfbuff_t *buffs;
+	gltfbuffs_parse(gltf->buffers,&buffs);
 
 
 
-
+	//free buffs
+	dynarr_gltfbuff_destroy(buffs);
+	free(buffs);
 
 
 	//free bufferViews
