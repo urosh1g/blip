@@ -18,7 +18,17 @@ int main(){
 	meshes_parse(gltf->meshes, &meshes);
 	dynarr_accessor_t *accessors;
 	accessors_parse(gltf->accessors,&accessors);	
-	
+	dynarr_bufferView_t *bufferViews;
+	bufferViews_parse(gltf->bufferViews,&bufferViews);	
+
+
+
+
+
+
+	//free bufferViews
+	dynarr_bufferView_destroy(bufferViews);
+	free(bufferViews);
 
 	//free accessors
 	dynarr_accessor_destroy(accessors);
@@ -26,24 +36,17 @@ int main(){
 
 	//free meshes
 	for(size_t i=0;i<meshes->length;i++){
-		for(size_t j=0;j<meshes->elems[i].primitives.length;j++)
-			htable_attributes_destroy(&meshes->elems[i].primitives.elems[j].attributes);
-		dynarr_primitive_destroy(&meshes->elems[i].primitives);
+		mesh_destroy(&meshes->elems[i]);
 	}
 	dynarr_mesh_destroy(meshes);
 	free(meshes);
 	
 	//free gltf
-	free(gltf->meshes);
-	free(gltf->accessors);
-	free(gltf->bufferViews);	
+	gltf_destroy(gltf);
 	free(gltf);
 
 	//free glb
-	for(size_t i=0;i<glb->chunks.length;i++){
-		free(glb->chunks.elems[i].chunkData);	
-	}
-	dynarr_chunk_destroy(&glb->chunks);
+	glb_destroy(glb);
 	free(glb);
 	return 0;
 }

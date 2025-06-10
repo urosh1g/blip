@@ -9,12 +9,12 @@
 
 
 
-void extract_section(char **extracted_section, 
+bool extract_section(char **extracted_section, 
 				  char *start_tag,
                                   char *chunk,
                                   char *field_name) {
   char *start = strstr(chunk, start_tag);
-  if(!start) return; 
+  if(!start) return false; 
   uint32_t parenthesis=1;
   if(start_tag[0]!='{'&&start_tag[0]!='[')
   {
@@ -27,20 +27,22 @@ void extract_section(char **extracted_section,
 	if(*p=='{'||*p=='[') parenthesis++;
 	if(*p=='}'||*p==']') parenthesis--;
   }
+  if(parenthesis!=0) return false;
   *extracted_section = malloc(p - start + 2);
   strncpy((*extracted_section), start, p - start+1);
   (*extracted_section)[p - start+1] = '\0';
-  log_debug("found %s\n%s",field_name,(*extracted_section));
+  (void) field_name;
+  //log_debug("found %s\n%s",field_name,(*extracted_section));
+  return true;
 }
 
 
-void extract_section_between_tags(char **result, char* start_tag, char* end_tag, char* chunk, char* field_name){
+bool extract_section_between_tags(char **result, char* start_tag, char* end_tag, char* chunk, char* field_name){
   char *start = strstr(chunk, start_tag);
   if(!start) {
 	  log_debug("Couldn't find %s",start_tag);
-	  return;
+	  return false;
   }
-  log_info("start is %s",start);
   char *end =strstr(start,end_tag);
   if(!end) {
     end =strstr(start,"}");
@@ -48,29 +50,31 @@ void extract_section_between_tags(char **result, char* start_tag, char* end_tag,
   *result = malloc(end - start + 2);
   strncpy((*result), start, end - start+1);
   (*result)[end - start+1] = '\0';
-  log_debug("found %s\n%s",field_name,(*result));
-
+ 	(void) field_name;
+  //log_debug("found %s\n%s",field_name,(*result));
+  return true;
 }
 
-void extract_field_value(char **subchunk, char *startstr, char *chunk,
+bool extract_field_value(char **subchunk, char *startstr, char *chunk,
                          char *field_name) {
   char *dummy;
-  extract_section_between_tags(&dummy, startstr, ",", chunk, field_name);
-  if(!dummy) return;
+  bool success=extract_section_between_tags(&dummy, startstr, ",", chunk, field_name);
+  if(!success) return false;
   char *start = strchr(dummy, ':');
   if (!start)
-    return;
+    return false;
   start++;
   char *end = strchr(start, ',');
   if (!end)
     end = strchr(start, '}');
   if (!end)
-    return;
+    return false;
   *subchunk = malloc(end - start + 1);
   strncpy((*subchunk), start, end - start);
   (*subchunk)[end - start] = '\0';
   log_debug("%s=%s", field_name, (*subchunk));
   free(dummy);
+  return true;
 }
 
 bool find_section_by_index(char **result, char *chunk, uint32_t target_index) {
@@ -78,13 +82,13 @@ bool find_section_by_index(char **result, char *chunk, uint32_t target_index) {
   uint32_t offset = 0;
   uint32_t i = 0;
   uint32_t max_length = strlen(chunk);
-  log_debug("Searching for section[%d]...",target_index);
+  //log_debug("Searching for section[%d]...",target_index);
   while (!found && offset < max_length) {
     char section_s[20];
     sprintf(section_s, "section[%d]", i);
     extract_section(result, "{", &chunk[offset], section_s);
     if (i == target_index) {
-      log_debug("FOUND section[%d]",target_index);
+      //log_debug("FOUND section[%d]",target_index);
       found = true;
     } else {
       offset += strlen(*result);
@@ -95,31 +99,72 @@ bool find_section_by_index(char **result, char *chunk, uint32_t target_index) {
   return found;
 }
 
-void bufferViews_parse(char* chunkData){
+void extra_stuff(){
 /*
-  char *buff_indx;
-  found = find_section_by_index(&buff_indx, chunk.bufferViews,
-                                atoi(vertices.bufferView));
-  if (!found)
-    return;
-
-  bufferView_t vertices_buffview;
-  extract_field_value(&vertices_buffview.byteOffset, "byteOffset", buff_indx,
-                      "vertices.byteOffset");
-  extract_field_value(&vertices_buffview.byteLength, "byteLength", buff_indx,
-                      "vertices byteLength");
-
+ *
   char *buffers;
   extract_section_between_tags(&buffers, "buffers", "}]", chunkData, "buffers");
-
- *
  * */
- (void) chunkData;
+}
+
+bufferView_t bufferView_parse(char* bufferView_s){
+  bufferView_t b;
+  char *buffer, *byteOffset, *byteLength, *target;
+  extract_field_value(&buffer, "buffer", bufferView_s,
+                      "bufferView.buffer");
+  extract_field_value(&byteOffset, "byteOffset", bufferView_s,
+                      "bufferView.byteOffset");
+  extract_field_value(&byteLength, "byteLength", bufferView_s,
+                      "bufferView.byteLength");
+  bool success=extract_field_value(&target, "target", bufferView_s,
+                      "bufferView.target");
+  
+  b.buffer=atoi(buffer);
+  b.byteOffset=atoi(byteOffset);
+  b.byteLength=atoi(byteLength);
+  b.target=success?atoi(target):0;
+ 
+  free(buffer);
+  free(byteOffset);
+  free(byteLength);
+  if(success){
+  	free(target); 
+  }
+  return b;
+}
+
+void bufferViews_parse(char* bufferViews_s, dynarr_bufferView_t **buffViews){
+  (*buffViews)=malloc(sizeof(dynarr_bufferView_t));
+  dynarr_bufferView_init(*buffViews);
+  
+  uint32_t i = 0, offset=0;
+  uint32_t max_length = strlen(bufferViews_s)-2;
+  log_info("Parsing bufferViews...");
+  while (offset+i < max_length) { 
+  	char *bufferView_s;
+ 	extract_section(&bufferView_s, "{", &bufferViews_s[offset], "bufferView");
+	
+	bufferView_t b=bufferView_parse(bufferView_s);
+	dynarr_bufferView_push(*buffViews,b);
+	
+	offset += strlen(bufferView_s);
+	i++;
+	free(bufferView_s);
+  }
+}
+
+uint32_t accessor_get_type(char* type_s){
+	if(strcmp(type_s, "\"SCALAR\"")==0) return SCALAR;
+	if(strcmp(type_s, "\"VEC2\"")==0) return VEC2;
+	if(strcmp(type_s, "\"VEC3\"")==0) return VEC3;
+	if(strcmp(type_s, "\"VEC4\"")==0) return VEC4;
+	if(strcmp(type_s, "\"MAT2\"")==0) return MAT2;
+	if(strcmp(type_s, "\"MAT3\"")==0) return MAT3;
+	if(strcmp(type_s, "\"MAT4\"")==0) return MAT4;
+	return 0;
 }
 
 accessor_t accessor_parse(char* accessor_s){
-  log_info("%s",accessor_s);
-
   accessor_t a;
   char *bufferView, *byteOffset, *componentType, *count, *type;
   extract_field_value(&bufferView, "bufferView", accessor_s,
@@ -136,7 +181,7 @@ accessor_t accessor_parse(char* accessor_s){
   a.byteOffset=atoi(byteOffset);
   a.componentType=atoi(componentType);
   a.count=atoi(count);
-  a.type=atoi(type);
+  a.type=accessor_get_type(type);
   
   
   free(bufferView);
@@ -153,7 +198,7 @@ void accessors_parse(char* accessors_s, dynarr_accessor_t **accessors){
   uint32_t i = 0, offset=0;
   uint32_t max_length = strlen(accessors_s)-2;
   log_info("Parsing accessors...");
-  while (offset < max_length && i==0) { 
+  while (offset+i < max_length) { 
   	char *accessor_s;
  	extract_section(&accessor_s, "{", &accessors_s[offset], "accessor");
 
@@ -210,12 +255,12 @@ mesh_t mesh_parse(char* mesh_str){
   return mesh;
 }
 void meshes_parse(char* chunk, dynarr_mesh_t** meshes){
-  (*meshes)=malloc(sizeof(meshes));
+  (*meshes)=malloc(sizeof(dynarr_mesh_t));
   dynarr_mesh_init(*meshes);
   uint32_t i = 0, offset=0;
   uint32_t max_length = strlen(chunk)-2;
   log_info("Parsing meshes...");
-  while (offset < max_length) { 
+  while (offset+i < max_length) { 
   	char *mesh;
  	extract_section(&mesh, "{", &chunk[offset], "mesh");
   	mesh_t m=mesh_parse(mesh);
@@ -300,4 +345,23 @@ bool glb_parse(char *filename, glb_t **glb){
   log_info("Finished reading %d bytes.",length_read);
   fclose(glb_fp);
   return true;
+}
+
+
+void mesh_destroy(mesh_t *mesh){
+	for(size_t j=0;j<mesh->primitives.length;j++)
+		htable_attributes_destroy(&mesh->primitives.elems[j].attributes);
+	dynarr_primitive_destroy(&mesh->primitives);
+
+}
+void glb_destroy(glb_t *glb){
+	for(size_t i=0;i<glb->chunks.length;i++){
+		free(glb->chunks.elems[i].chunkData);	
+	}
+	dynarr_chunk_destroy(&glb->chunks);
+}
+void gltf_destroy(gltf_t *gltf){
+	free(gltf->meshes);
+	free(gltf->accessors);
+	free(gltf->bufferViews);	
 }

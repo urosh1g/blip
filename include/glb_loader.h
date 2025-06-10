@@ -5,6 +5,11 @@
 #include <stdbool.h>
 #include <datastructs/data_structures.h>
 
+typedef enum bufferView_target_t{
+	ARRAY_BUFFER=34962,
+	ELEMENT_ARRAY_BUFFER
+}bufferView_target_t;
+
 typedef enum render_mode_t{
 	RENDERMODE_POINTS,
 	RENDERMODE_LINES,
@@ -37,19 +42,18 @@ typedef enum type_t{
 
 
 typedef struct bufferView_t {
-  /*uint32_t*/char * index;				//required
-  /*uint32_t*/char * byteOffset;				//default 0
-  /*uint32_t*/char * byteLength;				//requred
+  uint32_t buffer;			//required
+  uint32_t byteLength;			//requred
+  uint32_t byteOffset;			//default 0
+  uint32_t target;
 } bufferView_t;
-
-
 
 
 typedef struct accessor_t {
   uint32_t index;
-  uint32_t count;				//required
-  componentType_t componentType;		//required
-  type_t   type;					//required
+  uint32_t count;			//required
+  componentType_t componentType;	//required
+  type_t  type;				//required
   uint32_t bufferView;
   uint32_t byteOffset;
 } accessor_t;
@@ -79,7 +83,6 @@ typedef struct chunk_t{
 	uint32_t chunkLength;
 	char *chunkType;
 	char *chunkData;
-
 } chunk_t;
 dynarr_define_for(chunk_t, chunk);
 
@@ -91,13 +94,15 @@ typedef struct glb_t{
 	uint32_t chunks_count;
 } glb_t;
 
+dynarr_define_for(bufferView_t,bufferView);
 
-void bufferViews_parse(char *chunk);
+void bufferViews_parse(char *chunk, dynarr_bufferView_t **buffViews);
 void accessors_parse(char *chunk, dynarr_accessor_t **accessors);
 void meshes_parse(char *chunk, dynarr_mesh_t **meshes);
 bool glb_parse(char *filename, glb_t **glb);
 bool gltf_parse(char *chunkData, gltf_t **gltf);
 
-void glb_free(glb_t* glb);
-void mesh_free(mesh_t free);
+void mesh_destroy(mesh_t *mesh);
+void glb_destroy(glb_t *glb);
+void gltf_destroy(gltf_t *gltf);
 #endif
