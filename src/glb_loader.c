@@ -8,7 +8,6 @@
 #define COMPTYPE_USHORT 5123
 
 
-
 bool extract_section(char **extracted_section, 
 				  char *start_tag,
                                   char *chunk,
@@ -72,7 +71,7 @@ bool extract_field_value(char **subchunk, char *startstr, char *chunk,
   *subchunk = malloc(end - start + 1);
   strncpy((*subchunk), start, end - start);
   (*subchunk)[end - start] = '\0';
-  log_debug("%s=%s", field_name, (*subchunk));
+  //log_debug("%s=%s", field_name, (*subchunk));
   free(dummy);
   return true;
 }
@@ -391,3 +390,117 @@ void gltf_destroy(gltf_t *gltf){
 	free(gltf->bufferViews);
 	free(gltf->buffers);	
 }
+bool indices_load(glb_t *glb, dynarr_mesh_t *meshes, dynarr_accessor_t *accessors, dynarr_bufferView_t *bufferViews, unsigned int **indices){
+	uint32_t accessor=*htable_attributes_get(&meshes->elems[0].primitives.elems[0].attributes,"indices");
+	uint32_t indices_count=accessors->elems[accessor].count;
+	componentType_t component_type=accessors->elems[accessor].componentType;
+	if(component_type!=UNSIGNED_INT)
+	{
+		log_error("indices ComponentType not UNSIGNED_INT");
+		return false;
+	}
+	uint32_t component_size=4;	
+	type_t type=accessors->elems[accessor].type;
+	uint32_t buffView_ind=accessors->elems[accessor].bufferView;
+	bufferView_t *buffView=dynarr_bufferView_get(bufferViews,buffView_ind);
+	uint32_t buff_indx=buffView->buffer+1; //first chunk is gltf
+	uint32_t startOffset=buffView->byteOffset;
+	
+	uint32_t index=0;
+	uint32_t size=component_size*type;
+	*indices=malloc(sizeof(float)*type*indices_count);
+	while(index<indices_count){
+		uint32_t offset= startOffset+index*size;
+		
+		memcpy(&(*indices)[3*index],&glb->chunks.elems[buff_indx].chunkData[offset],component_size);
+		memcpy(&(*indices)[3*index+1],&glb->chunks.elems[buff_indx].chunkData[offset+component_size],component_size);
+		memcpy(&(*indices)[3*index+2],&glb->chunks.elems[buff_indx].chunkData[offset+2*component_size],component_size);
+		log_info("x=%f y=%f z=%f",(*indices)[3*index],(*indices)[3*index+1],(*indices)[3*index+2]);
+		index++;
+	}
+	return true;
+}
+
+bool position_load(glb_t *glb, dynarr_mesh_t *meshes, dynarr_accessor_t *accessors, dynarr_bufferView_t *bufferViews, float **vertices){
+	uint32_t accessor=*htable_attributes_get(&meshes->elems[0].primitives.elems[0].attributes,"POSITION");
+	uint32_t vertices_count=accessors->elems[accessor].count;
+	componentType_t component_type=accessors->elems[accessor].componentType;
+	if(component_type!=FLOAT)
+	{
+		log_error("POSITION ComponentType not FLOAT");
+		return false;
+	}
+	uint32_t component_size=4;	
+	type_t vertices_type=accessors->elems[accessor].type;
+	uint32_t vertices_buffView_ind=accessors->elems[accessor].bufferView;
+	bufferView_t *vertices_buffView=dynarr_bufferView_get(bufferViews,vertices_buffView_ind);
+	uint32_t buff_indx=vertices_buffView->buffer+1; //first chunk is gltf
+	uint32_t startOffset=vertices_buffView->byteOffset;
+	
+	uint32_t index=0;
+	uint32_t size=component_size*vertices_type;
+	*vertices=malloc(sizeof(float)*vertices_type*vertices_count);
+	while(index<vertices_count){
+		uint32_t offset= startOffset+index*size;
+		
+		memcpy(&(*vertices)[3*index],&glb->chunks.elems[buff_indx].chunkData[offset],component_size);
+		memcpy(&(*vertices)[3*index+1],&glb->chunks.elems[buff_indx].chunkData[offset+component_size],component_size);
+		memcpy(&(*vertices)[3*index+2],&glb->chunks.elems[buff_indx].chunkData[offset+2*component_size],component_size);
+		log_info("x=%f y=%f z=%f",(*vertices)[3*index],(*vertices)[3*index+1],(*vertices)[3*index+2]);
+		index++;
+	}
+	return true;
+}
+
+bool model_load(char *filename, float **vertices){
+	glb_t *glb;
+	glb_parse(filename,&glb);
+	if(strcmp((glb->chunks).elems[0].chunkType,"JSON")!=0){
+		log_error("first chunk not JSON");
+		return false;
+	}
+	
+	log_debug((glb->chunks).elems[0].chunkData);
+	gltf_t *gltf;
+	gltf_parse((glb->chunks).elems[0].chunkData, &gltf);
+	dynarr_mesh_t *meshes;
+	meshes_parse(gltf->meshes, &meshes);
+	dynarr_accessor_t *accessors;
+	accessors_parse(gltf->accessors,&accessors);	
+	dynarr_bufferView_t *bufferViews;
+	bufferViews_parse(gltf->bufferViews,&bufferViews);	
+	dynarr_gltfbuff_t *buffs;
+	gltfbuffs_parse(gltf->buffers,&buffs);
+
+	position_load(glb, meshes, accessors, bufferViews, vertices);
+
+	//cleanup
+	//free buffs
+	dynarr_gltfbuff_destroy(buffs);
+	free(buffs);
+
+	//free bufferViews
+	dynarr_bufferView_destroy(bufferViews);
+	free(bufferViews);
+
+	//free accessors
+	dynarr_accessor_destroy(accessors);
+	free(accessors);	
+
+	//free meshes
+	for(size_t i=0;i<meshes->length;i++){
+		mesh_destroy(&meshes->elems[i]);
+	}
+	dynarr_mesh_destroy(meshes);
+	free(meshes);
+	
+	//free gltf
+	gltf_destroy(gltf);
+	free(gltf);
+
+	//free glb
+	glb_destroy(glb);
+	free(glb);
+	return true;
+}
+

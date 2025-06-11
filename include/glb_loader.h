@@ -1,4 +1,4 @@
-#ifndef _blip_glb_laoder
+#ifndef _blip_glb_loader
 #define _blip_glb_loader
 
 #include <stdint.h>
@@ -111,4 +111,5 @@ bool gltf_parse(char *chunkData, gltf_t **gltf);
 void mesh_destroy(mesh_t *mesh);
 void glb_destroy(glb_t *glb);
 void gltf_destroy(gltf_t *gltf);
+bool model_load(char *filename, float **vertices);
 #endif
