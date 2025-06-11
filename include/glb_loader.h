@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <datastructs/data_structures.h>
-
+#include <glad/glad.h>
 typedef enum bufferView_target_t{
 	ARRAY_BUFFER=34962,
 	ELEMENT_ARRAY_BUFFER
@@ -111,5 +111,5 @@ bool gltf_parse(char *chunkData, gltf_t **gltf);
 void mesh_destroy(mesh_t *mesh);
 void glb_destroy(glb_t *glb);
 void gltf_destroy(gltf_t *gltf);
-bool model_load(char *filename, float **vertices, uint32_t **indices);
+bool model_load(char *filename, float **vertices, uint32_t **indices, GLenum *mode);
 #endif

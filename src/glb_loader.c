@@ -391,24 +391,28 @@ void gltf_destroy(gltf_t *gltf){
 	free(gltf->buffers);	
 }
 bool indices_load(glb_t *glb, dynarr_mesh_t *meshes, dynarr_accessor_t *accessors, dynarr_bufferView_t *bufferViews, unsigned int **indices){
-	uint32_t accessor=*htable_attributes_get(&meshes->elems[0].primitives.elems[0].attributes,"indices");
-	uint32_t indices_count=accessors->elems[accessor].count;
-	componentType_t component_type=accessors->elems[accessor].componentType;
-	if(component_type!=UNSIGNED_INT)
-	{
-		log_error("indices ComponentType not UNSIGNED_INT");
+	uint32_t *accessor=htable_attributes_get(&meshes->elems[0].primitives.elems[0].attributes,"indices");
+	if(!accessor){
+		log_error("no indices found");
 		return false;
 	}
-	uint32_t component_size=4;	
-	type_t type=accessors->elems[accessor].type;
-	uint32_t buffView_ind=accessors->elems[accessor].bufferView;
+	uint32_t indices_count=accessors->elems[*accessor].count;
+	componentType_t component_type=accessors->elems[*accessor].componentType;
+	if(component_type!=UNSIGNED_INT && component_type!=UNSIGNED_SHORT)
+	{
+		log_error("indices ComponentType not UNSIGNED_INT/UNSIGNED_SHORT");
+		return false;
+	}
+	uint32_t component_size=component_type==UNSIGNED_INT?4:2;	
+	type_t type=accessors->elems[*accessor].type;
+	uint32_t buffView_ind=accessors->elems[*accessor].bufferView;
 	bufferView_t *buffView=dynarr_bufferView_get(bufferViews,buffView_ind);
 	uint32_t buff_indx=buffView->buffer+1; //first chunk is gltf
 	uint32_t startOffset=buffView->byteOffset;
 	
 	uint32_t index=0;
 	uint32_t size=component_size*type;
-	*indices=malloc(sizeof(uint32_t)*type*indices_count);
+	*indices=malloc(size*indices_count);
 	while(index<indices_count){
 		uint32_t offset= startOffset+index*size;
 		
@@ -437,20 +441,31 @@ bool position_load(glb_t *glb, dynarr_mesh_t *meshes, dynarr_accessor_t *accesso
 	
 	uint32_t index=0;
 	uint32_t size=component_size*vertices_type;
-	*vertices=malloc(sizeof(float)*vertices_type*vertices_count);
+	*vertices=malloc(size*vertices_count);
 	while(index<vertices_count){
 		uint32_t offset= startOffset+index*size;
 		
 		memcpy(&(*vertices)[3*index],&glb->chunks.elems[buff_indx].chunkData[offset],component_size);
 		memcpy(&(*vertices)[3*index+1],&glb->chunks.elems[buff_indx].chunkData[offset+component_size],component_size);
 		memcpy(&(*vertices)[3*index+2],&glb->chunks.elems[buff_indx].chunkData[offset+2*component_size],component_size);
-		log_info("x=%f y=%f z=%f",(*vertices)[3*index],(*vertices)[3*index+1],(*vertices)[3*index+2]);
+		log_info("%d. x=%f y=%f z=%f",index,(*vertices)[3*index],(*vertices)[3*index+1],(*vertices)[3*index+2]);
 		index++;
 	}
 	return true;
 }
 
-bool model_load(char *filename, float **vertices, uint32_t **indices){
+GLenum get_GLenum_mode(render_mode_t mode){
+	GLenum result=GL_TRIANGLES;
+	if(mode==RENDERMODE_POINTS) result=GL_POINTS;
+	if(mode==RENDERMODE_LINES) result=GL_LINES;
+	if(mode==RENDERMODE_LINE_LOOP) result=GL_LINE_LOOP;
+	if(mode==RENDERMODE_LINE_STRIP) result=GL_LINE_STRIP;
+	if(mode==RENDERMODE_TRIANGLE_STRIP) result=GL_TRIANGLE_STRIP;
+	if(mode==RENDERMODE_TRIANGLE_FAN) result=GL_TRIANGLE_FAN;
+	return result;
+}
+
+bool model_load(char *filename, float **vertices, uint32_t **indices, GLenum *mode){
 	glb_t *glb;
 	glb_parse(filename,&glb);
 	if(strcmp((glb->chunks).elems[0].chunkType,"JSON")!=0){
@@ -473,7 +488,7 @@ bool model_load(char *filename, float **vertices, uint32_t **indices){
 	//loading data
 	position_load(glb, meshes, accessors, bufferViews, vertices);
 	indices_load(glb, meshes, accessors, bufferViews, indices);
-	
+	*mode=get_GLenum_mode(meshes->elems[0].primitives.elems[0].mode);	
 	
 	//cleanup
 	//free buffs

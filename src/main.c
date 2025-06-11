@@ -14,6 +14,8 @@
 #include <camera.h>
 #include <texture.h>
 #include <logger/logger.h>
+#include <glb_loader.h>
+
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
@@ -161,8 +163,8 @@ int main() {
     });
     GLFWwindow* window = init_glad_glfw();
 
-    GLuint vert_shader = shader_load("vs.glsl", GL_VERTEX_SHADER);
-    GLuint frag_shader = shader_load("fs.glsl", GL_FRAGMENT_SHADER);
+    GLuint vert_shader = shader_load("simple.vs", GL_VERTEX_SHADER);
+    GLuint frag_shader = shader_load("simple.fs", GL_FRAGMENT_SHADER);
 
     GLuint shaders[2];
     shaders[0] = vert_shader;
@@ -175,11 +177,19 @@ int main() {
     log_error("This is a error level log.");
     log_fatal("This is a fatal level log.");
 
+    float *vertices;
+    uint32_t *indices;
+    GLenum mode;
+    model_load("assets/cube.glb", &vertices, &indices, &mode);
+    
+    log_info("%f %f %f",vertices[0],vertices[1],vertices[2]);
+    log_info("%d %d %d",indices[0],indices[1],indices[2]);
+   /*
     float vertices[] = {// coords	  //tex_coords
                         -0.5, 0.5,  0, 0, 1, -0.5, -0.5, 0, 0, 0,
                         0.5,  -0.5, 0, 1, 0, 0.5,  0.5,  0, 1, 1};
     unsigned int indices[] = {0, 1, 2, 0, 2, 3};
-
+    */
     unsigned int VAO, VBO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -187,19 +197,17 @@ int main() {
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 36*3*sizeof(float), vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
-                 GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 36*sizeof(uint32_t), indices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                          (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
+    //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    //glEnableVertexAttribArray(1);
 
     glBindVertexArray(0);
 
+    /*
     unsigned int img_id = tex_load("./assets/img.png", true);
     (void)img_id;
     program_use(program);
@@ -207,7 +215,7 @@ int main() {
     tex_bind(img_id);
     GLuint tex_uniform = glGetUniformLocation(program, "tex");
     glUniform1i(tex_uniform, 0);
-
+    */
     mat4 model = GLM_MAT4_IDENTITY_INIT;
     vec3 camera_pos = {0, 0, 2};
     vec3 world_up = {0, 1, 0};
@@ -216,7 +224,7 @@ int main() {
                   CAMERA_PERSPECTIVE);
 
     global_camera = &camera;
-
+	glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
         float current_frame = (float)glfwGetTime();
         delta_time = current_frame - last_frame;
@@ -236,8 +244,9 @@ int main() {
                            (const float*)camera.projection);
 
         glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(mode, 36, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
+
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         igNewFrame();
