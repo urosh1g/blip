@@ -105,6 +105,7 @@ gltfbuff_t gltfbuff_parse(char* buff_s) {
     char* byteLength;
     extract_field_value(&byteLength, "byteLength", buff_s, "buffer.byteLength");
     b.byteLength = atoi(byteLength);
+    free(byteLength); 
     return b;
 }
 
@@ -390,6 +391,7 @@ void gltf_destroy(gltf_t* gltf) {
     free(gltf->bufferViews);
     free(gltf->buffers);
 }
+
 bool indices_load(glb_t* glb, dynarr_mesh_t* meshes,
                   dynarr_accessor_t* accessors,
                   dynarr_bufferView_t* bufferViews, unsigned int** indices) {
@@ -420,9 +422,10 @@ bool indices_load(glb_t* glb, dynarr_mesh_t* meshes,
 
         memcpy(&(*indices)[index],
                &glb->chunks.elems[buff_indx].chunkData[offset], component_size);
-        log_info("i%d=%d", index, (*indices)[index]);
+        //log_info("i%d=%d", index, (*indices)[index]);
         index++;
     }
+    log_info("indices_count=%d",indices_count);
     return true;
 }
 
@@ -460,10 +463,11 @@ bool position_load(glb_t* glb, dynarr_mesh_t* meshes,
                &glb->chunks.elems[buff_indx]
                     .chunkData[offset + 2 * component_size],
                component_size);
-        log_info("%d. x=%f y=%f z=%f", index, (*vertices)[3 * index],
-                 (*vertices)[3 * index + 1], (*vertices)[3 * index + 2]);
+        //log_info("%d. x=%f y=%f z=%f", index, (*vertices)[3 * index],
+        //         (*vertices)[3 * index + 1], (*vertices)[3 * index + 2]);
         index++;
     }
+    log_info("vert_count=%d", vertices_count);
     return true;
 }
 
