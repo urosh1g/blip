@@ -408,14 +408,12 @@ bool indices_load(glb_t *glb, dynarr_mesh_t *meshes, dynarr_accessor_t *accessor
 	
 	uint32_t index=0;
 	uint32_t size=component_size*type;
-	*indices=malloc(sizeof(float)*type*indices_count);
+	*indices=malloc(sizeof(uint32_t)*type*indices_count);
 	while(index<indices_count){
 		uint32_t offset= startOffset+index*size;
 		
-		memcpy(&(*indices)[3*index],&glb->chunks.elems[buff_indx].chunkData[offset],component_size);
-		memcpy(&(*indices)[3*index+1],&glb->chunks.elems[buff_indx].chunkData[offset+component_size],component_size);
-		memcpy(&(*indices)[3*index+2],&glb->chunks.elems[buff_indx].chunkData[offset+2*component_size],component_size);
-		log_info("x=%f y=%f z=%f",(*indices)[3*index],(*indices)[3*index+1],(*indices)[3*index+2]);
+		memcpy(&(*indices)[index],&glb->chunks.elems[buff_indx].chunkData[offset],component_size);
+		log_info("i%d=%d",index,(*indices)[index]);
 		index++;
 	}
 	return true;
@@ -452,7 +450,7 @@ bool position_load(glb_t *glb, dynarr_mesh_t *meshes, dynarr_accessor_t *accesso
 	return true;
 }
 
-bool model_load(char *filename, float **vertices){
+bool model_load(char *filename, float **vertices, uint32_t **indices){
 	glb_t *glb;
 	glb_parse(filename,&glb);
 	if(strcmp((glb->chunks).elems[0].chunkType,"JSON")!=0){
@@ -472,8 +470,11 @@ bool model_load(char *filename, float **vertices){
 	dynarr_gltfbuff_t *buffs;
 	gltfbuffs_parse(gltf->buffers,&buffs);
 
+	//loading data
 	position_load(glb, meshes, accessors, bufferViews, vertices);
-
+	indices_load(glb, meshes, accessors, bufferViews, indices);
+	
+	
 	//cleanup
 	//free buffs
 	dynarr_gltfbuff_destroy(buffs);

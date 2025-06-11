@@ -7,5 +7,6 @@
 int main(){
 	log_info("testing glb_loader...");
 	float *vertices;
-	model_load("assets/cube.glb", &vertices);
+	uint32_t *indices;
+	model_load("assets/cube.glb", &vertices, &indices);
 }
