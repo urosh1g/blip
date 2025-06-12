@@ -6,8 +6,10 @@
 int main() {
     log_info("testing glb_loader...");
     
-    primitive_t *p=model_load("assets/Duck.glb");
-    primitive_destroy(p);
-    free(p);
+    model_t *m=model_load("assets/Duck.glb");
+    log_error("vert count%d",m->meshes->elems[0].primitives->elems[0].vertices->count);
+    log_error("vert count%d",m->meshes->elems[0].primitives->elems[0].indices->count);
+    model_destroy(m);
+    free(m);
 
 }

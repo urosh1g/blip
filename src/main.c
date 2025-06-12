@@ -177,7 +177,8 @@ int main() {
     log_error("This is a error level log.");
     log_fatal("This is a fatal level log.");
 
-    primitive_t* primitive=model_load("assets/cube.glb");
+    model_t* loadedmodel=model_load("assets/Duck.glb");
+    primitive_t* primitive = &loadedmodel->meshes->elems[0].primitives->elems[0];
     /*
      float vertices[] = {// coords	  //tex_coords
                          -0.5, 0.5,  0, 0, 1, -0.5, -0.5, 0, 0, 0,
@@ -190,7 +191,6 @@ int main() {
     glGenBuffers(1, &EBO);
     glBindVertexArray(VAO);
   
-        
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, primitive->vertices->count * primitive->vertices->component_size * primitive->vertices->component_type, primitive->vertices->data,
                  GL_STATIC_DRAW);

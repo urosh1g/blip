@@ -110,13 +110,6 @@ dynarr_gltfmesh_t* meshes_parse(char* chunk);
 gltf_t* gltf_parse(char* chunkData);
 glb_t* glb_parse(char* filename);
 
-void gltfmesh_destroy(gltfmesh_t* mesh);
-void glb_destroy(glb_t* glb);
-void gltf_destroy(gltf_t* gltf);
-
-
-
-
 typedef struct geometry_data_t{
 	void *data;
 	uint32_t count;
@@ -128,16 +121,19 @@ typedef struct geometry_data_t{
 typedef struct primitive_t{
 	geometry_data_t *vertices;
 	geometry_data_t *indices;
-	render_mode_t rendermode;
+	GLenum rendermode;
 }primitive_t;
 
 dynarr_define_for(primitive_t, primitive);
 
 typedef struct mesh_t{
-	dynarr_primitive_t primitives;	
+	dynarr_primitive_t* primitives;	
 }mesh_t;
+dynarr_define_for(mesh_t, mesh);
 
-void geometry_data_destroy(geometry_data_t* gd);
-void primitive_destroy(primitive_t* p);
-primitive_t* model_load(char* filename);
+typedef struct model_t{
+	dynarr_mesh_t* meshes;
+}model_t;
+void model_destroy(model_t* m);
+model_t* model_load(char* filename);
 #endif
