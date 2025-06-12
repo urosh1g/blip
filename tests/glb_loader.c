@@ -7,6 +7,7 @@ int main() {
     log_info("testing glb_loader...");
     
     primitive_t *p=model_load("assets/Duck.glb");
-    (void) p;
+    primitive_destroy(p);
+    free(p);
 
 }

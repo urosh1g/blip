@@ -353,7 +353,7 @@ glb_t* glb_parse(char *filename) {
     return glb;
 }
 
-void mesh_destroy(gltfmesh_t* mesh) {
+void gltfmesh_destroy(gltfmesh_t* mesh) {
     for (size_t j = 0; j < mesh->primitives.length; j++)
         htable_attributes_destroy(&mesh->primitives.elems[j].attributes);
     dynarr_gltfprimitive_destroy(&mesh->primitives);
@@ -500,7 +500,7 @@ primitive_t* model_load(char* filename) {
 
     // free meshes
     for (size_t i = 0; i < meshes->length; i++) {
-        mesh_destroy(&meshes->elems[i]);
+        gltfmesh_destroy(&meshes->elems[i]);
     }
     dynarr_gltfmesh_destroy(meshes);
     free(meshes);
@@ -513,4 +513,14 @@ primitive_t* model_load(char* filename) {
     glb_destroy(glb);
     free(glb);
     return primitive;
+}
+
+void geometry_data_destroy(geometry_data_t* gd){
+	free(gd->data);
+}
+void primitive_destroy(primitive_t* p){
+	geometry_data_destroy(p->vertices);
+	geometry_data_destroy(p->indices);
+	free(p->vertices);
+	free(p->indices);
 }

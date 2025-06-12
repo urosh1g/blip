@@ -110,7 +110,7 @@ dynarr_gltfmesh_t* meshes_parse(char* chunk);
 gltf_t* gltf_parse(char* chunkData);
 glb_t* glb_parse(char* filename);
 
-void mesh_destroy(gltfmesh_t* mesh);
+void gltfmesh_destroy(gltfmesh_t* mesh);
 void glb_destroy(glb_t* glb);
 void gltf_destroy(gltf_t* gltf);
 
@@ -137,5 +137,7 @@ typedef struct mesh_t{
 	dynarr_primitive_t primitives;	
 }mesh_t;
 
+void geometry_data_destroy(geometry_data_t* gd);
+void primitive_destroy(primitive_t* p);
 primitive_t* model_load(char* filename);
 #endif
