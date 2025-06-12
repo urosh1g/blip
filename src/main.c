@@ -177,13 +177,7 @@ int main() {
     log_error("This is a error level log.");
     log_fatal("This is a fatal level log.");
 
-    float* vertices;
-    uint32_t* indices;
-    GLenum mode;
-    model_load("assets/Duck.glb", &vertices, &indices, &mode);
-
-    log_info("%f %f %f", vertices[0], vertices[1], vertices[2]);
-    log_info("%d %d %d", indices[0], indices[1], indices[2]);
+    primitive_t* primitive=model_load("assets/cube.glb");
     /*
      float vertices[] = {// coords	  //tex_coords
                          -0.5, 0.5,  0, 0, 1, -0.5, -0.5, 0, 0, 0,
@@ -195,16 +189,20 @@ int main() {
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
     glBindVertexArray(VAO);
-
+  
+        
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, 2399 * 3 * 4, vertices,
+    glBufferData(GL_ARRAY_BUFFER, primitive->vertices->count * primitive->vertices->component_size * primitive->vertices->component_type, primitive->vertices->data,
                  GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 12636 * 4, indices,
-                 GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, 5126, GL_FALSE, 0, 0);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, primitive->indices->count * primitive->indices->component_size * primitive->indices->component_type, primitive->indices->data, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, primitive->vertices->GL_component_type, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(0);
-    log_info("%d",GL_FLOAT);
+    log_info("count:%d",primitive->indices->count);
+    log_info("ctype:%d",primitive->indices->component_type);
+    log_info("csize:%d",primitive->indices->component_size);
+    log_info("GLctype:%d",primitive->indices->GL_component_type);
+    log_info("%f %f %f",((float*)primitive->vertices->data)[3],((float*)primitive->vertices->data)[4],((float*)primitive->vertices->data)[5]);
     // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
     // (void*)(3 * sizeof(float))); glEnableVertexAttribArray(1);
 
@@ -247,7 +245,7 @@ int main() {
                            (const float*)camera.projection);
 
         glBindVertexArray(VAO);
-        glDrawElements(mode, 12636, GL_UNSIGNED_INT, 0);
+        glDrawElements(primitive->rendermode, primitive->indices->count, primitive->indices->GL_component_type, 0);
         glBindVertexArray(0);
 
         ImGui_ImplOpenGL3_NewFrame();
