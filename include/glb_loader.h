@@ -3,8 +3,10 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <datastructs/data_structures.h>
+#include <datastructs/dynarr.h>
+#include <datastructs/hashtable.h>
 #include <glad/glad.h>
+
 typedef enum bufferView_target_t {
     ARRAY_BUFFER = 34962,
     ELEMENT_ARRAY_BUFFER
@@ -100,16 +102,16 @@ typedef struct glb_t {
 dynarr_define_for(gltfbuff_t, gltfbuff);
 dynarr_define_for(bufferView_t, bufferView);
 
-void gltfbuffs_parse(char* chunk, dynarr_gltfbuff_t** buffs);
-void bufferViews_parse(char* chunk, dynarr_bufferView_t** buffViews);
-void accessors_parse(char* chunk, dynarr_accessor_t** accessors);
-void meshes_parse(char* chunk, dynarr_mesh_t** meshes);
-bool glb_parse(char* filename, glb_t** glb);
-bool gltf_parse(char* chunkData, gltf_t** gltf);
+dynarr_gltfbuff_t* gltfbuffs_parse(char* chunk);
+dynarr_bufferView_t* bufferViews_parse(char* chunk);
+dynarr_accessor_t* accessors_parse(char* chunk);
+dynarr_mesh_t* meshes_parse(char* chunk);
+gltf_t* gltf_parse(char* chunkData);
+glb_t* glb_parse(char* filename);
 
-void mesh_destroy(mesh_t* mesh);
-void glb_destroy(glb_t* glb);
-void gltf_destroy(gltf_t* gltf);
+static void mesh_destroy(mesh_t* mesh);
+static void glb_destroy(glb_t* glb);
+static void gltf_destroy(gltf_t* gltf);
 bool model_load(char* filename, float** vertices, uint32_t** indices,
                 GLenum* mode);
 #endif

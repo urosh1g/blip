@@ -180,7 +180,7 @@ int main() {
     float* vertices;
     uint32_t* indices;
     GLenum mode;
-    model_load("assets/cube.glb", &vertices, &indices, &mode);
+    model_load("assets/Duck.glb", &vertices, &indices, &mode);
 
     log_info("%f %f %f", vertices[0], vertices[1], vertices[2]);
     log_info("%d %d %d", indices[0], indices[1], indices[2]);
@@ -197,13 +197,14 @@ int main() {
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, 36 * 3 * sizeof(float), vertices,
+    glBufferData(GL_ARRAY_BUFFER, 2399 * 3 * 4, vertices,
                  GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 36 * sizeof(uint32_t), indices,
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 12636 * 4, indices,
                  GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(0, 3, 5126, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(0);
+    log_info("%d",GL_FLOAT);
     // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
     // (void*)(3 * sizeof(float))); glEnableVertexAttribArray(1);
 
@@ -246,7 +247,7 @@ int main() {
                            (const float*)camera.projection);
 
         glBindVertexArray(VAO);
-        glDrawElements(mode, 36, GL_UNSIGNED_INT, 0);
+        glDrawElements(mode, 12636, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
 
         ImGui_ImplOpenGL3_NewFrame();

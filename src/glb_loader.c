@@ -4,10 +4,7 @@
 #include <string.h>
 #include <logger/logger.h>
 
-#define COMPTYPE_FLOAT 5126
-#define COMPTYPE_USHORT 5123
-
-bool extract_section(char** extracted_section, char* start_tag, char* chunk,
+static bool extract_section(char** extracted_section, char* start_tag, char* chunk,
                      char* field_name) {
     char* start = strstr(chunk, start_tag);
     if (!start)
@@ -35,7 +32,7 @@ bool extract_section(char** extracted_section, char* start_tag, char* chunk,
     return true;
 }
 
-bool extract_section_between_tags(char** result, char* start_tag, char* end_tag,
+static bool extract_section_between_tags(char** result, char* start_tag, char* end_tag,
                                   char* chunk, char* field_name) {
     char* start = strstr(chunk, start_tag);
     if (!start) {
@@ -54,7 +51,7 @@ bool extract_section_between_tags(char** result, char* start_tag, char* end_tag,
     return true;
 }
 
-bool extract_field_value(char** subchunk, char* startstr, char* chunk,
+static bool extract_field_value(char** subchunk, char* startstr, char* chunk,
                          char* field_name) {
     char* dummy;
     bool success =
@@ -78,29 +75,7 @@ bool extract_field_value(char** subchunk, char* startstr, char* chunk,
     return true;
 }
 
-bool find_section_by_index(char** result, char* chunk, uint32_t target_index) {
-    bool found = false;
-    uint32_t offset = 0;
-    uint32_t i = 0;
-    uint32_t max_length = strlen(chunk);
-    // log_debug("Searching for section[%d]...",target_index);
-    while (!found && offset < max_length) {
-        char section_s[20];
-        sprintf(section_s, "section[%d]", i);
-        extract_section(result, "{", &chunk[offset], section_s);
-        if (i == target_index) {
-            // log_debug("FOUND section[%d]",target_index);
-            found = true;
-        } else {
-            offset += strlen(*result);
-            free(*result);
-            i++;
-        }
-    }
-    return found;
-}
-
-gltfbuff_t gltfbuff_parse(char* buff_s) {
+static gltfbuff_t gltfbuff_parse(char* buff_s) {
     gltfbuff_t b;
     char* byteLength;
     extract_field_value(&byteLength, "byteLength", buff_s, "buffer.byteLength");
@@ -109,9 +84,9 @@ gltfbuff_t gltfbuff_parse(char* buff_s) {
     return b;
 }
 
-void gltfbuffs_parse(char* gltfbuffs_s, dynarr_gltfbuff_t** buffs) {
-    (*buffs) = malloc(sizeof(dynarr_gltfbuff_t));
-    dynarr_gltfbuff_init(*buffs);
+dynarr_gltfbuff_t* gltfbuffs_parse(char* gltfbuffs_s) {
+    dynarr_gltfbuff_t *buffs = malloc(sizeof(dynarr_gltfbuff_t));
+    dynarr_gltfbuff_init(buffs);
 
     uint32_t i = 0, offset = 0;
     uint32_t max_length = strlen(gltfbuffs_s) - 2;
@@ -121,15 +96,16 @@ void gltfbuffs_parse(char* gltfbuffs_s, dynarr_gltfbuff_t** buffs) {
         extract_section(&gltfbuff_s, "{", &gltfbuffs_s[offset], "gltfbuff");
 
         gltfbuff_t b = gltfbuff_parse(gltfbuff_s);
-        dynarr_gltfbuff_push(*buffs, b);
+        dynarr_gltfbuff_push(buffs, b);
 
         offset += strlen(gltfbuff_s);
         i++;
         free(gltfbuff_s);
     }
+    return buffs;
 }
 
-bufferView_t bufferView_parse(char* bufferView_s) {
+static bufferView_t bufferView_parse(char* bufferView_s) {
     bufferView_t b;
     char *buffer, *byteOffset, *byteLength, *target;
     extract_field_value(&buffer, "buffer", bufferView_s, "bufferView.buffer");
@@ -154,9 +130,9 @@ bufferView_t bufferView_parse(char* bufferView_s) {
     return b;
 }
 
-void bufferViews_parse(char* bufferViews_s, dynarr_bufferView_t** buffViews) {
-    (*buffViews) = malloc(sizeof(dynarr_bufferView_t));
-    dynarr_bufferView_init(*buffViews);
+dynarr_bufferView_t* bufferViews_parse(char* bufferViews_s) {
+    dynarr_bufferView_t *buffViews = malloc(sizeof(dynarr_bufferView_t));
+    dynarr_bufferView_init(buffViews);
 
     uint32_t i = 0, offset = 0;
     uint32_t max_length = strlen(bufferViews_s) - 2;
@@ -167,15 +143,16 @@ void bufferViews_parse(char* bufferViews_s, dynarr_bufferView_t** buffViews) {
                         "bufferView");
 
         bufferView_t b = bufferView_parse(bufferView_s);
-        dynarr_bufferView_push(*buffViews, b);
+        dynarr_bufferView_push(buffViews, b);
 
         offset += strlen(bufferView_s);
         i++;
         free(bufferView_s);
     }
+    return buffViews;
 }
 
-uint32_t accessor_get_type(char* type_s) {
+static uint32_t accessor_get_type(char* type_s) {
     if (strcmp(type_s, "\"SCALAR\"") == 0)
         return SCALAR;
     if (strcmp(type_s, "\"VEC2\"") == 0)
@@ -193,7 +170,7 @@ uint32_t accessor_get_type(char* type_s) {
     return 0;
 }
 
-accessor_t accessor_parse(char* accessor_s) {
+static accessor_t accessor_parse(char* accessor_s) {
     accessor_t a;
     char *bufferView, *byteOffset, *componentType, *count, *type;
     extract_field_value(&bufferView, "bufferView", accessor_s,
@@ -219,9 +196,9 @@ accessor_t accessor_parse(char* accessor_s) {
     return a;
 }
 
-void accessors_parse(char* accessors_s, dynarr_accessor_t** accessors) {
-    (*accessors) = malloc(sizeof(dynarr_accessor_t));
-    dynarr_accessor_init(*accessors);
+dynarr_accessor_t* accessors_parse(char* accessors_s) {
+    dynarr_accessor_t *accessors = malloc(sizeof(dynarr_accessor_t));
+    dynarr_accessor_init(accessors);
     uint32_t i = 0, offset = 0;
     uint32_t max_length = strlen(accessors_s) - 2;
     log_info("Parsing accessors...");
@@ -231,14 +208,15 @@ void accessors_parse(char* accessors_s, dynarr_accessor_t** accessors) {
 
         accessor_t a = accessor_parse(accessor_s);
         a.index = i;
-        dynarr_accessor_push(*accessors, a);
+        dynarr_accessor_push(accessors, a);
 
         offset += strlen(accessor_s);
         i++;
         free(accessor_s);
     }
+    return accessors;
 }
-mesh_t mesh_parse(char* mesh_str) {
+static mesh_t mesh_parse(char* mesh_str) {
     log_debug("Parsing mesh...");
 
     char* primitives;
@@ -281,9 +259,9 @@ mesh_t mesh_parse(char* mesh_str) {
     free(primitives);
     return mesh;
 }
-void meshes_parse(char* chunk, dynarr_mesh_t** meshes) {
-    (*meshes) = malloc(sizeof(dynarr_mesh_t));
-    dynarr_mesh_init(*meshes);
+dynarr_mesh_t* meshes_parse(char* chunk) {
+    dynarr_mesh_t *meshes = malloc(sizeof(dynarr_mesh_t));
+    dynarr_mesh_init(meshes);
     uint32_t i = 0, offset = 0;
     uint32_t max_length = strlen(chunk) - 2;
     log_info("Parsing meshes...");
@@ -291,59 +269,60 @@ void meshes_parse(char* chunk, dynarr_mesh_t** meshes) {
         char* mesh;
         extract_section(&mesh, "{", &chunk[offset], "mesh");
         mesh_t m = mesh_parse(mesh);
-        dynarr_mesh_push(*meshes, m);
+        dynarr_mesh_push(meshes, m);
         offset += strlen(mesh);
         i++;
         free(mesh);
     }
+    return meshes;
 }
 
-bool gltf_parse(char* chunkData, gltf_t** gltf) {
-    (*gltf) = malloc(sizeof(gltf_t));
-    extract_section(&(*gltf)->meshes, "meshes", chunkData, "meshes");
-    extract_section(&(*gltf)->bufferViews, "bufferViews", chunkData,
+gltf_t* gltf_parse(char* chunkData) {
+    gltf_t *gltf = malloc(sizeof(gltf_t));
+    extract_section(&gltf->meshes, "meshes", chunkData, "meshes");
+    extract_section(&gltf->bufferViews, "bufferViews", chunkData,
                     "bufferViews");
-    extract_section(&(*gltf)->accessors, "accessors", chunkData, "accessors");
-    extract_section(&(*gltf)->buffers, "buffers", chunkData, "buffers");
+    extract_section(&gltf->accessors, "accessors", chunkData, "accessors");
+    extract_section(&gltf->buffers, "buffers", chunkData, "buffers");
 
-    return true;
+    return gltf;
 }
 
-bool glb_parse(char* filename, glb_t** glb) {
+glb_t* glb_parse(char *filename) {
     FILE* glb_fp = fopen(filename, "r");
     uint32_t length_read = 0;
 
     if (!glb_fp) {
         log_error("Error reading file %s", filename);
-        return false;
+        return NULL;
     }
 
-    (*glb) = malloc(sizeof(glb_t));
-    fread(&(*glb)->magic, sizeof(uint32_t), 1, glb_fp);
-    if ((*glb)->magic != 0x46546C67) {
+    glb_t *glb = malloc(sizeof(glb_t));
+    fread(&glb->magic, sizeof(uint32_t), 1, glb_fp);
+    if (glb->magic != 0x46546C67) {
         log_error("%s not a gltf file", filename);
         fclose(glb_fp);
-        return false;
+        return NULL;
     }
     length_read += sizeof(uint32_t);
 
-    fread(&(*glb)->version, sizeof(uint32_t), 1, glb_fp);
-    if ((*glb)->version != 2) {
+    fread(&glb->version, sizeof(uint32_t), 1, glb_fp);
+    if (glb->version != 2) {
         log_error("%s is not version .gltf 2.0", filename);
         fclose(glb_fp);
-        return false;
+        return NULL;
     }
     length_read += sizeof(uint32_t);
 
-    fread(&(*glb)->length, sizeof(uint32_t), 1, glb_fp);
+    fread(&glb->length, sizeof(uint32_t), 1, glb_fp);
     length_read += sizeof(uint32_t);
 
-    log_info("version=%d length=%d", (*glb)->version, (*glb)->length);
+    log_info("version=%d length=%d", glb->version, glb->length);
 
-    dynarr_chunk_init(&(*glb)->chunks);
+    dynarr_chunk_init(&glb->chunks);
     size_t i = 0;
     uint32_t chunk_type;
-    while (length_read < (*glb)->length) {
+    while (length_read < glb->length) {
         chunk_t chunk;
 
         fread(&chunk.chunkLength, sizeof(uint32_t), 1, glb_fp);
@@ -360,39 +339,39 @@ bool glb_parse(char* filename, glb_t** glb) {
 
         i++;
         length_read += chunk.chunkLength;
-        dynarr_chunk_push(&(*glb)->chunks, chunk);
+        dynarr_chunk_push(&glb->chunks, chunk);
     }
 
-    if ((*glb)->length != length_read) {
+    if (glb->length != length_read) {
         log_error("Error reading bytes. Read %d expected %d\n", length_read,
-                  (*glb)->length);
+                  glb->length);
     }
-    (*glb)->chunks_count = i;
+    glb->chunks_count = i;
 
     log_info("Finished reading %d bytes.", length_read);
     fclose(glb_fp);
-    return true;
+    return glb;
 }
 
-void mesh_destroy(mesh_t* mesh) {
+static void mesh_destroy(mesh_t* mesh) {
     for (size_t j = 0; j < mesh->primitives.length; j++)
         htable_attributes_destroy(&mesh->primitives.elems[j].attributes);
     dynarr_primitive_destroy(&mesh->primitives);
 }
-void glb_destroy(glb_t* glb) {
+static void glb_destroy(glb_t* glb) {
     for (size_t i = 0; i < glb->chunks.length; i++) {
         free(glb->chunks.elems[i].chunkData);
     }
     dynarr_chunk_destroy(&glb->chunks);
 }
-void gltf_destroy(gltf_t* gltf) {
+static void gltf_destroy(gltf_t* gltf) {
     free(gltf->meshes);
     free(gltf->accessors);
     free(gltf->bufferViews);
     free(gltf->buffers);
 }
 
-bool indices_load(glb_t* glb, dynarr_mesh_t* meshes,
+static bool indices_load(glb_t* glb, dynarr_mesh_t* meshes,
                   dynarr_accessor_t* accessors,
                   dynarr_bufferView_t* bufferViews, unsigned int** indices) {
     uint32_t* accessor = htable_attributes_get(
@@ -407,7 +386,7 @@ bool indices_load(glb_t* glb, dynarr_mesh_t* meshes,
         log_error("indices ComponentType not UNSIGNED_INT/UNSIGNED_SHORT");
         return false;
     }
-    uint32_t component_size = component_type == UNSIGNED_INT ? 4 : 2;
+    uint32_t component_size = component_type == UNSIGNED_INT ? sizeof(uint32_t) : sizeof(uint16_t);
     type_t type = accessors->elems[*accessor].type;
     uint32_t buffView_ind = accessors->elems[*accessor].bufferView;
     bufferView_t* buffView = dynarr_bufferView_get(bufferViews, buffView_ind);
@@ -416,20 +395,21 @@ bool indices_load(glb_t* glb, dynarr_mesh_t* meshes,
 
     uint32_t index = 0;
     uint32_t size = component_size * type;
-    *indices = malloc(size * indices_count);
+    *indices = malloc(4 * indices_count);
     while (index < indices_count) {
         uint32_t offset = startOffset + index * size;
-
-        memcpy(&(*indices)[index],
+	uint16_t dummy;
+        memcpy(&dummy,
                &glb->chunks.elems[buff_indx].chunkData[offset], component_size);
-        //log_info("i%d=%d", index, (*indices)[index]);
+        (*indices)[index]=(uint32_t)dummy;
+	//log_info("i%d=%d", index, (*indices)[index]);
         index++;
     }
     log_info("indices_count=%d",indices_count);
     return true;
 }
 
-bool position_load(glb_t* glb, dynarr_mesh_t* meshes,
+static bool position_load(glb_t* glb, dynarr_mesh_t* meshes,
                    dynarr_accessor_t* accessors,
                    dynarr_bufferView_t* bufferViews, float** vertices) {
     uint32_t accessor = *htable_attributes_get(
@@ -471,48 +451,27 @@ bool position_load(glb_t* glb, dynarr_mesh_t* meshes,
     return true;
 }
 
-GLenum get_GLenum_mode(render_mode_t mode) {
-    GLenum result = GL_TRIANGLES;
-    if (mode == RENDERMODE_POINTS)
-        result = GL_POINTS;
-    if (mode == RENDERMODE_LINES)
-        result = GL_LINES;
-    if (mode == RENDERMODE_LINE_LOOP)
-        result = GL_LINE_LOOP;
-    if (mode == RENDERMODE_LINE_STRIP)
-        result = GL_LINE_STRIP;
-    if (mode == RENDERMODE_TRIANGLE_STRIP)
-        result = GL_TRIANGLE_STRIP;
-    if (mode == RENDERMODE_TRIANGLE_FAN)
-        result = GL_TRIANGLE_FAN;
-    return result;
-}
 
 bool model_load(char* filename, float** vertices, uint32_t** indices,
                 GLenum* mode) {
-    glb_t* glb;
-    glb_parse(filename, &glb);
+    glb_t* glb=glb_parse(filename);
+    if(!glb) return false;
     if (strcmp((glb->chunks).elems[0].chunkType, "JSON") != 0) {
         log_error("first chunk not JSON");
         return false;
     }
 
     log_debug((glb->chunks).elems[0].chunkData);
-    gltf_t* gltf;
-    gltf_parse((glb->chunks).elems[0].chunkData, &gltf);
-    dynarr_mesh_t* meshes;
-    meshes_parse(gltf->meshes, &meshes);
-    dynarr_accessor_t* accessors;
-    accessors_parse(gltf->accessors, &accessors);
-    dynarr_bufferView_t* bufferViews;
-    bufferViews_parse(gltf->bufferViews, &bufferViews);
-    dynarr_gltfbuff_t* buffs;
-    gltfbuffs_parse(gltf->buffers, &buffs);
+    gltf_t* gltf=gltf_parse((glb->chunks).elems[0].chunkData);
+    dynarr_mesh_t* meshes=meshes_parse(gltf->meshes);
+    dynarr_accessor_t* accessors=accessors_parse(gltf->accessors);
+    dynarr_bufferView_t* bufferViews=bufferViews_parse(gltf->bufferViews);
+    dynarr_gltfbuff_t* buffs=gltfbuffs_parse(gltf->buffers);
 
     // loading data
     position_load(glb, meshes, accessors, bufferViews, vertices);
     indices_load(glb, meshes, accessors, bufferViews, indices);
-    *mode = get_GLenum_mode(meshes->elems[0].primitives.elems[0].mode);
+    *mode = meshes->elems[0].primitives.elems[0].mode;
 
     // cleanup
     // free buffs
