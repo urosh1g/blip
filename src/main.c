@@ -176,38 +176,46 @@ int main() {
     log_warn("This is a warn level log.");
     log_error("This is a error level log.");
     log_fatal("This is a fatal level log.");
-
-    model_t* loadedmodel=model_load("assets/Duck.glb");
-    primitive_t* primitive = &loadedmodel->meshes->elems[0].primitives->elems[0];
     /*
      float vertices[] = {// coords	  //tex_coords
                          -0.5, 0.5,  0, 0, 1, -0.5, -0.5, 0, 0, 0,
                          0.5,  -0.5, 0, 1, 0, 0.5,  0.5,  0, 1, 1};
      unsigned int indices[] = {0, 1, 2, 0, 2, 3};
      */
-    unsigned int VAO, VBO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    glBindVertexArray(VAO);
-  
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, primitive->vertices->count * primitive->vertices->component_size * primitive->vertices->component_type, primitive->vertices->data,
-                 GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, primitive->indices->count * primitive->indices->component_size * primitive->indices->component_type, primitive->indices->data, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, primitive->vertices->GL_component_type, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(0);
-    log_info("count:%d",primitive->indices->count);
-    log_info("ctype:%d",primitive->indices->component_type);
-    log_info("csize:%d",primitive->indices->component_size);
-    log_info("GLctype:%d",primitive->indices->GL_component_type);
-    log_info("%f %f %f",((float*)primitive->vertices->data)[3],((float*)primitive->vertices->data)[4],((float*)primitive->vertices->data)[5]);
-    // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-    // (void*)(3 * sizeof(float))); glEnableVertexAttribArray(1);
 
-    glBindVertexArray(0);
-
+    model_t* loadedmodel=model_load("assets/cube.glb");
+    uint32_t mesh_count=loadedmodel->meshes->length;
+    uint32_t** VAO=malloc(sizeof(uint32_t*)*mesh_count);
+    for(size_t i=0; i<mesh_count;i++){
+	    log_error("i=%d, len=%d",i,mesh_count);
+	    size_t primitive_count=loadedmodel->meshes->elems[i].primitives->length; 
+	    VAO[i]=malloc(sizeof(uint32_t)*primitive_count);
+	    glGenVertexArrays(primitive_count, VAO[i]);
+    	for(size_t j=0; j<primitive_count;j++){
+	    log_error("j=%d, len=%d",j,primitive_count);
+	    primitive_t* primitive = &loadedmodel->meshes->elems[i].primitives->elems[j];
+	    unsigned int VBO, EBO;
+	    glGenBuffers(1, &VBO);
+	    glGenBuffers(1, &EBO);
+	    glBindVertexArray(VAO[i][j]);
+	  
+	    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	    glBufferData(GL_ARRAY_BUFFER, primitive->vertices->count * primitive->vertices->component_size * primitive->vertices->component_type, primitive->vertices->data,
+	                 GL_STATIC_DRAW);
+	    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	    glBufferData(GL_ELEMENT_ARRAY_BUFFER, primitive->indices->count * primitive->indices->component_size * primitive->indices->component_type, primitive->indices->data, GL_STATIC_DRAW);
+	    glVertexAttribPointer(0, 3, primitive->vertices->GL_component_type, GL_FALSE, 0, 0);
+	    glEnableVertexAttribArray(0);
+	    
+	    log_info("count:%d",primitive->indices->count);
+	    log_info("ctype:%d",primitive->indices->component_type);
+	    log_info("csize:%d",primitive->indices->component_size);
+	    log_info("GLctype:%d",primitive->indices->GL_component_type);
+	    log_info("%f %f %f",((float*)primitive->vertices->data)[3],((float*)primitive->vertices->data)[4],((float*)primitive->vertices->data)[5]);
+	    
+	    glBindVertexArray(0);
+    	}
+    }
     /*
     unsigned int img_id = tex_load("./assets/img.png", true);
     (void)img_id;
@@ -244,10 +252,16 @@ int main() {
         glUniformMatrix4fv(projection_id, 1, GL_FALSE,
                            (const float*)camera.projection);
 
-        glBindVertexArray(VAO);
-        glDrawElements(primitive->rendermode, primitive->indices->count, primitive->indices->GL_component_type, 0);
-        glBindVertexArray(0);
-
+        size_t mesh_count=loadedmodel->meshes->length;
+	for(size_t i=0;i<mesh_count;i++){
+		size_t primitives_count=loadedmodel->meshes->elems[i].primitives->length;
+		for(size_t j=0;j<primitives_count;j++){
+			glBindVertexArray(VAO[i][j]);
+			primitive_t* primitive = &loadedmodel->meshes->elems[i].primitives->elems[j];
+        		glDrawElements(primitive->rendermode, primitive->indices->count, primitive->indices->GL_component_type, 0);
+        		glBindVertexArray(0);
+		}
+	}
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         igNewFrame();
@@ -265,9 +279,9 @@ int main() {
     ImGui_ImplGlfw_Shutdown();
     igDestroyContext(imgui_ctx);
 
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
+    //glDeleteVertexArrays(1, &VAO);
+    //glDeleteBuffers(1, &VBO);
+    //glDeleteBuffers(1, &EBO);
 
     glfwDestroyWindow(window);
     glfwTerminate();
