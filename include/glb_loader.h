@@ -6,7 +6,7 @@
 #include <datastructs/dynarr.h>
 #include <datastructs/hashtable.h>
 #include <glad/glad.h>
-
+#include <cglm/cglm.h>
 typedef enum bufferView_target_t {
     ARRAY_BUFFER = 34962,
     ELEMENT_ARRAY_BUFFER
@@ -41,6 +41,17 @@ typedef enum type_t {
     MAT3 = 9,
     MAT4 = 16
 } type_t;
+
+typedef struct gltfnode_t{
+	char* name;
+	uint32_t* mesh;
+	mat4 matrix;
+	char* children;
+}gltfnode_t;
+
+typedef struct gltfscene_t{
+	char* nodes; 	
+} gltfscene_t;
 
 
 typedef struct gltfbuff_t {
@@ -81,6 +92,9 @@ typedef struct gltf_t {
     char* accessors;
     char* bufferViews;
     char* buffers;
+    char* scene;
+    char* scenes;
+    char* nodes;
 } gltf_t;
 
 typedef struct chunk_t {
@@ -102,6 +116,11 @@ dynarr_define_for(gltfmesh_t, gltfmesh);
 dynarr_define_for(accessor_t, accessor);
 dynarr_define_for(gltfbuff_t, gltfbuff);
 dynarr_define_for(bufferView_t, bufferView);
+dynarr_define_for(gltfnode_t, gltfnode);
+dynarr_define_for(gltfscene_t, gltfscene);
+
+dynarr_gltfnode_t* gltfnodes_parse(char* chunk);
+dynarr_gltfscene_t* gltfscenes_parse(char* chunk);
 
 dynarr_gltfbuff_t* gltfbuffs_parse(char* chunk);
 dynarr_bufferView_t* bufferViews_parse(char* chunk);

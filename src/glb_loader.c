@@ -28,7 +28,7 @@ static char* extract_section(char* start_tag, char* chunk,
     strncpy(result, start, p - start + 1);
     result[p - start + 1] = '\0';
     (void)field_name;
-    //log_debug("found %s\n%s",field_name,result);
+    log_debug("found %s\n%s",field_name,result);
     return result;
 }
 
@@ -68,9 +68,103 @@ static char* extract_field_value(char* startstr, char* chunk,
     char *subchunk = malloc(end - start + 1);
     strncpy(subchunk, start, end - start);
     subchunk[end - start] = '\0';
-    //log_debug("%s=%s", field_name, subchunk);
+    log_debug("%s=%s", field_name, subchunk);
     free(dummy);
     return subchunk;
+}
+
+static gltfnode_t gltfnode_parse(char* node_s) {
+    char* name=extract_field_value("name", node_s, "node.name");
+    char* mesh=extract_field_value("mesh", node_s, "node.mesh");
+    char* translation=extract_section("translation", node_s, "node.translation");
+    char* rotation=extract_section("rotation", node_s, "node.rotation");
+    char* scale=extract_section("scale", node_s, "node.scale");
+    char* matrix=extract_section("matrix", node_s, "node.matrix");
+    char* children=extract_section("children", node_s, "node.children");
+    
+    gltfnode_t n;
+    n.name=name;
+    if(mesh){
+	    n.mesh=malloc(sizeof(uint32_t));
+    	    *n.mesh=atoi(mesh);
+    }
+    mat4 m=GLM_MAT4_IDENTITY_INIT;
+    if(matrix)
+	sscanf(matrix,"[%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f]",&m[0][0],&m[0][1],&m[0][2],&m[0][3],&m[1][0],&m[1][1],&m[1][2],&m[1][3],&m[2][0],&m[2][1],&m[2][2],&m[2][3],&m[3][0],&m[3][1],&m[3][2],&m[3][3]);
+    
+    if(translation){
+    	vec3 vec;
+    	sscanf(translation,"[%f,%f,%f]",&vec[0],&vec[1],&vec[2]);
+	glm_scale(m,vec);
+    }
+    if(rotation){
+    	versor quat;
+    	sscanf(rotation,"[%f,%f,%f,%f]",&quat[0],&quat[1],&quat[2],&quat[3]);
+	glm_scale(m,quat);
+    }
+    if(scale){
+    	vec3 vec;
+    	sscanf(scale,"[%f,%f,%f]",&vec[0],&vec[1],&vec[2]);
+	glm_scale(m,vec);
+    }
+    glm_mat4_copy(m,n.matrix);
+    if(children)
+	    n.children=children;
+    
+    free(translation);
+    free(rotation);
+    free(scale);
+    return n;
+}
+
+dynarr_gltfnode_t* gltfnodes_parse(char* nodes_s) {
+    dynarr_gltfnode_t *nodes = malloc(sizeof(dynarr_gltfnode_t));
+    dynarr_gltfnode_init(nodes);
+
+    uint32_t i = 0, offset = 0;
+    uint32_t max_length = strlen(nodes_s) - 2;
+    log_info("Parsing nodes...");
+    while (offset + i < max_length) {
+        char* gltfnode_s=extract_section("{",&nodes_s[offset], "gltfnode");
+
+        gltfnode_t n = gltfnode_parse(gltfnode_s);
+        dynarr_gltfnode_push(nodes, n);
+
+        offset += strlen(gltfnode_s);
+        i++;
+        free(gltfnode_s);
+    }
+    return nodes;
+}
+
+static gltfscene_t gltfscene_parse(char* scene_s) {
+    gltfscene_t s;
+    char* nodes=extract_section("nodes", scene_s, "scene.nodes");
+    char* arr=strtok(nodes,"[");
+    arr=strtok(nodes,"]");
+    s.nodes=arr;
+
+    return s;
+}
+
+dynarr_gltfscene_t* gltfscenes_parse(char* scenes_s) {
+    dynarr_gltfscene_t *scenes = malloc(sizeof(dynarr_gltfscene_t));
+    dynarr_gltfscene_init(scenes);
+
+    uint32_t i = 0, offset = 0;
+    uint32_t max_length = strlen(scenes_s) - 2;
+    log_info("Parsing scenes...");
+    while (offset + i < max_length) {
+        char* gltfscene_s=extract_section("{",&scenes_s[offset], "gltfscene");
+
+        gltfscene_t s = gltfscene_parse(gltfscene_s);
+        dynarr_gltfscene_push(scenes, s);
+	
+        offset += strlen(gltfscene_s);
+        i++;
+        free(gltfscene_s);
+    }
+    return scenes;
 }
 
 static gltfbuff_t gltfbuff_parse(char* buff_s) {
@@ -267,7 +361,10 @@ gltf_t* gltf_parse(char* chunkData) {
                     "bufferViews");
     gltf->accessors=extract_section("accessors", chunkData, "accessors");
     gltf->buffers=extract_section("buffers", chunkData, "buffers");
-
+    gltf->scenes=extract_section("scenes", chunkData, "scenes");
+    log_debug(gltf->scenes);
+    gltf->nodes=extract_section("nodes\":[{", chunkData, "nodes");
+    log_debug(gltf->nodes);
     return gltf;
 }
 
@@ -456,7 +553,10 @@ model_t* model_load(char* filename) {
     dynarr_accessor_t* accessors=accessors_parse(gltf->accessors);
     dynarr_bufferView_t* bufferViews=bufferViews_parse(gltf->bufferViews);
     dynarr_gltfbuff_t* buffs=gltfbuffs_parse(gltf->buffers);
-
+    dynarr_gltfscene_t* scenes=gltfscenes_parse(gltf->scenes);
+    dynarr_gltfnode_t* nodes=gltfnodes_parse(gltf->nodes);
+    (void)nodes; 
+    (void)scenes;
     // loading data
     model_t *model=malloc(sizeof(model_t));
     model->meshes=malloc(sizeof(dynarr_mesh_t));
@@ -505,6 +605,18 @@ model_t* model_load(char* filename) {
     glb_destroy(glb);
     free(glb);
     return model;
+}
+
+void gltfnode_destroy(gltfnode_t* n){
+	free(n->name);
+	if(n->mesh)
+		free(n->mesh);
+	if(n->children)
+		free(n->children);
+}
+
+void gltfscene_destroy(gltfscene_t* s){
+	free(s->nodes);
 }
 
 void geometry_data_destroy(geometry_data_t* gd){
