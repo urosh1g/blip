@@ -155,49 +155,6 @@ GLFWwindow* init_glad_glfw() {
     return window;
 }
 
-void primitive_draw(uint32_t VAO, primitive_t* p){
-   glBindVertexArray(VAO);
-   glDrawElements(p->rendermode, p->indices->count, p->indices->GL_component_type, 0);
-   glBindVertexArray(0);
-} 
-
-void gltfnode_draw(gltfnode_t* root, mat4 model, uint32_t model_uniform_id, model_t* loadedmodel, uint32_t** VAO){
-	if(!root) return;
-	glm_mat4_mul(model, model, *root->matrix);
-	dynarr_uint32_t *children=root->children;
-	if(children){
-		for(size_t ind=0;ind<children->length;ind++){	
-		uint32_t c=children->elems[ind];
-		gltfnode_t* node=&loadedmodel->nodes->elems[c];
-		gltfnode_draw(node, model, model_uniform_id, loadedmodel, VAO);
-	}
-	}
-	if(root->mesh)
-	{
-		uint32_t mesh_index=*root->mesh;
-		size_t primitives_count=loadedmodel->meshes->elems[mesh_index].primitives->length;
-		for(size_t j=0;j<primitives_count;j++){
-   			primitive_t* p = &loadedmodel->meshes->elems[mesh_index].primitives->elems[j];
-   			glUniformMatrix4fv(model_uniform_id, 1, GL_FALSE, (const float*)model);
-			primitive_draw(VAO[mesh_index][j], p);
-		}
-	}
-	mat4 inv;
-	glm_mat4_inv(*root->matrix,inv);
-	glm_mat4_mul(model,model,inv);	
-}
-
-void model_draw(model_t* m, mat4 model, uint32_t model_uniform_id, uint32_t** VAO){
-        //size_t mesh_count=m->meshes->length;
-	gltfscene_t* scene=dynarr_gltfscene_get(m->scenes,m->default_scene);
-	size_t rootnodes_count=scene->nodes->length;
-	for(size_t rootnode=0;rootnode<rootnodes_count;rootnode++)
-	{
-		gltfnode_t* root=&m->nodes->elems[rootnode];
-		gltfnode_draw(root, model, model_uniform_id, m, VAO);
-	}
-}
-
 int main() {
     FILE* file_log = fopen("log.txt", "w");
     log_add_sink((log_sink_t){
@@ -226,41 +183,8 @@ int main() {
      unsigned int indices[] = {0, 1, 2, 0, 2, 3};
      */
 
-    model_t* loadedmodel=model_load("assets/Duck.glb");
-    uint32_t mesh_count=loadedmodel->meshes->length;
-    uint32_t** VAO=malloc(sizeof(uint32_t*)*mesh_count);
-    for(size_t i=0; i<mesh_count;i++){
-	    log_error("i=%d, len=%d",i,mesh_count);
-	    size_t primitive_count=loadedmodel->meshes->elems[i].primitives->length; 
-	    VAO[i]=malloc(sizeof(uint32_t)*primitive_count);
-	    glGenVertexArrays(primitive_count, VAO[i]);
-    	for(size_t j=0; j<primitive_count;j++){
-	    log_error("j=%d, len=%d",j,primitive_count);
-	    primitive_t* primitive = &loadedmodel->meshes->elems[i].primitives->elems[j];
-	    unsigned int VBO, EBO;
-	    glGenBuffers(1, &VBO);
-	    glGenBuffers(1, &EBO);
-	    glBindVertexArray(VAO[i][j]);
-	  
-	    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	    glBufferData(GL_ARRAY_BUFFER, primitive->vertices->count * primitive->vertices->component_size * primitive->vertices->component_type, primitive->vertices->data,
-	                 GL_STATIC_DRAW);
-	    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	    glBufferData(GL_ELEMENT_ARRAY_BUFFER, primitive->indices->count * primitive->indices->component_size * primitive->indices->component_type, primitive->indices->data, GL_STATIC_DRAW);
-	    
-	    glVertexAttribPointer(0, primitive->vertices->component_size, primitive->vertices->GL_component_type, primitive->vertices->normalized, 0, 0);
-	    glEnableVertexAttribArray(0);
-	    
-	    log_info("count:%d",primitive->indices->count);
-	    log_info("ctype:%d",primitive->indices->component_type);
-	    log_info("csize:%d",primitive->indices->component_size);
-	    log_info("GLctype:%d",primitive->indices->GL_component_type);
-	    log_info("normalized:%s",primitive->vertices->normalized?"true":"false");
-	    log_info("%f %f %f",((float*)primitive->vertices->data)[0],((float*)primitive->vertices->data)[1],((float*)primitive->vertices->data)[2]);
-	    
-	    glBindVertexArray(0);
-    	}
-    }
+    model_t* loadedmodel=model_load("assets/cube.glb");
+    uint32_t** VAO = model_get_VAOs(loadedmodel);
     /*
     unsigned int img_id = tex_load("./assets/img.png", true);
     (void)img_id;

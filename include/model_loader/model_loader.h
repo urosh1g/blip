@@ -32,5 +32,6 @@ typedef struct model_t{
 }model_t;
 void model_destroy(model_t* m);
 model_t* model_load(char* filename);
-
+uint32_t** model_get_VAOs(model_t* m);
+void model_draw(model_t* m, mat4 model, uint32_t model_uniform_id, uint32_t** VAO);
 #endif
