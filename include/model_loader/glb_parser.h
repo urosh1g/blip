@@ -1,5 +1,5 @@
-#ifndef _blip_glb_loader
-#define _blip_glb_loader
+#ifndef _blip_glb_parser
+#define _blip_glb_parser
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -9,6 +9,7 @@
 #include <cglm/cglm.h>
 
 dynarr_define_for(uint32_t,uint32);
+
 typedef enum type_t {
     SCALAR = 1,
     VEC2,
@@ -38,17 +39,18 @@ typedef struct bufferView_t {
     uint32_t buffer;     // required
     uint32_t byteLength; // requred
     uint32_t byteOffset; // default 0
-    uint32_t byteStride;
+    uint32_t byteStride; // default 0
     uint32_t target;
 } bufferView_t;
 
 typedef struct accessor_t {
     uint32_t index;
-    uint32_t count;                // required
+    uint32_t count;       // required
     GLenum componentType; // required
-    type_t type;                   // required
+    type_t type;          // required
     uint32_t bufferView;
     uint32_t byteOffset;
+    bool normalized;
 } accessor_t;
 
 htable_define_for(uint32_t, attributes);
@@ -98,7 +100,6 @@ dynarr_define_for(gltfscene_t, gltfscene);
 
 dynarr_gltfnode_t* gltfnodes_parse(char* chunk);
 dynarr_gltfscene_t* gltfscenes_parse(char* chunk);
-
 dynarr_gltfbuff_t* gltfbuffs_parse(char* chunk);
 dynarr_bufferView_t* bufferViews_parse(char* chunk);
 dynarr_accessor_t* accessors_parse(char* chunk);
@@ -106,33 +107,9 @@ dynarr_gltfmesh_t* meshes_parse(char* chunk);
 gltf_t* gltf_parse(char* chunkData);
 glb_t* glb_parse(char* filename);
 
-typedef struct geometry_data_t{
-	void *data;
-	uint32_t count;
-	uint32_t component_type;
-	uint32_t component_size;
-	GLenum GL_component_type;
-} geometry_data_t;
-
-typedef struct primitive_t{
-	geometry_data_t *vertices;
-	geometry_data_t *indices;
-	GLenum rendermode;
-}primitive_t;
-
-dynarr_define_for(primitive_t, primitive);
-
-typedef struct mesh_t{
-	dynarr_primitive_t* primitives;	
-}mesh_t;
-dynarr_define_for(mesh_t, mesh);
-
-typedef struct model_t{
-	dynarr_mesh_t* meshes;
-	dynarr_gltfscene_t* scenes;
-	dynarr_gltfnode_t* nodes;
-	uint32_t default_scene;
-}model_t;
-void model_destroy(model_t* m);
-model_t* model_load(char* filename);
+void gltfnode_destroy(gltfnode_t* n);
+void gltfscene_destroy(gltfscene_t* s);
+void gltfmesh_destroy(gltfmesh_t* m);
+void gltf_destroy(gltf_t* gltf);
+void glb_destroy(glb_t* glb);
 #endif

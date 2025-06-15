@@ -14,7 +14,7 @@
 #include <camera.h>
 #include <texture.h>
 #include <logger/logger.h>
-#include <glb_loader.h>
+#include <model_loader/model_loader.h>
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
@@ -247,14 +247,16 @@ int main() {
 	                 GL_STATIC_DRAW);
 	    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	    glBufferData(GL_ELEMENT_ARRAY_BUFFER, primitive->indices->count * primitive->indices->component_size * primitive->indices->component_type, primitive->indices->data, GL_STATIC_DRAW);
-	    glVertexAttribPointer(0, 3, primitive->vertices->GL_component_type, GL_FALSE, 0, 0);
+	    
+	    glVertexAttribPointer(0, primitive->vertices->component_size, primitive->vertices->GL_component_type, primitive->vertices->normalized, 0, 0);
 	    glEnableVertexAttribArray(0);
 	    
 	    log_info("count:%d",primitive->indices->count);
 	    log_info("ctype:%d",primitive->indices->component_type);
 	    log_info("csize:%d",primitive->indices->component_size);
 	    log_info("GLctype:%d",primitive->indices->GL_component_type);
-	    log_info("%f %f %f",((float*)primitive->vertices->data)[3],((float*)primitive->vertices->data)[4],((float*)primitive->vertices->data)[5]);
+	    log_info("normalized:%s",primitive->vertices->normalized?"true":"false");
+	    log_info("%f %f %f",((float*)primitive->vertices->data)[0],((float*)primitive->vertices->data)[1],((float*)primitive->vertices->data)[2]);
 	    
 	    glBindVertexArray(0);
     	}
