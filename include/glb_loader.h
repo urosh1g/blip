@@ -7,31 +7,8 @@
 #include <datastructs/hashtable.h>
 #include <glad/glad.h>
 #include <cglm/cglm.h>
-typedef enum bufferView_target_t {
-    ARRAY_BUFFER = 34962,
-    ELEMENT_ARRAY_BUFFER
-} bufferView_target_t;
 
-typedef enum render_mode_t {
-    RENDERMODE_POINTS,
-    RENDERMODE_LINES,
-    RENDERMODE_LINE_LOOP,
-    RENDERMODE_LINE_STRIP,
-    RENDERMODE_TRIANGLES,
-    RENDERMODE_TRIANGLE_STRIP,
-    RENDERMODE_TRIANGLE_FAN,
-    RENDERMODE_DEFAULT = 4
-} render_mode_t;
-
-typedef enum componentType_t {
-    BYTE = 5120,
-    UNSIGNED_BYTE,
-    SHORT,
-    UNSIGNED_SHORT,
-    UNSIGNED_INT = 5125,
-    FLOAT
-} componentType_t;
-
+dynarr_define_for(uint32_t,uint32);
 typedef enum type_t {
     SCALAR = 1,
     VEC2,
@@ -45,14 +22,13 @@ typedef enum type_t {
 typedef struct gltfnode_t{
 	char* name;
 	uint32_t* mesh;
-	mat4 matrix;
-	char* children;
+	mat4* matrix;
+	dynarr_uint32_t* children;
 }gltfnode_t;
 
 typedef struct gltfscene_t{
-	char* nodes; 	
+	dynarr_uint32_t* nodes; 	
 } gltfscene_t;
-
 
 typedef struct gltfbuff_t {
     uint32_t byteLength;
@@ -62,13 +38,14 @@ typedef struct bufferView_t {
     uint32_t buffer;     // required
     uint32_t byteLength; // requred
     uint32_t byteOffset; // default 0
+    uint32_t byteStride;
     uint32_t target;
 } bufferView_t;
 
 typedef struct accessor_t {
     uint32_t index;
     uint32_t count;                // required
-    componentType_t componentType; // required
+    GLenum componentType; // required
     type_t type;                   // required
     uint32_t bufferView;
     uint32_t byteOffset;
@@ -77,7 +54,7 @@ typedef struct accessor_t {
 htable_define_for(uint32_t, attributes);
 
 typedef struct gltfprimitive_t {
-    render_mode_t mode;
+    GLenum mode;
     htable_attributes_t attributes;
 } gltfprimitive_t;
 
@@ -92,7 +69,7 @@ typedef struct gltf_t {
     char* accessors;
     char* bufferViews;
     char* buffers;
-    char* scene;
+    uint32_t default_scene;
     char* scenes;
     char* nodes;
 } gltf_t;
@@ -152,6 +129,9 @@ dynarr_define_for(mesh_t, mesh);
 
 typedef struct model_t{
 	dynarr_mesh_t* meshes;
+	dynarr_gltfscene_t* scenes;
+	dynarr_gltfnode_t* nodes;
+	uint32_t default_scene;
 }model_t;
 void model_destroy(model_t* m);
 model_t* model_load(char* filename);

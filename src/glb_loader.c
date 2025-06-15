@@ -73,7 +73,7 @@ static char* extract_field_value(char* startstr, char* chunk,
     return subchunk;
 }
 
-static gltfnode_t gltfnode_parse(char* node_s) {
+static gltfnode_t* gltfnode_parse(char* node_s) {
     char* name=extract_field_value("name", node_s, "node.name");
     char* mesh=extract_field_value("mesh", node_s, "node.mesh");
     char* translation=extract_section("translation", node_s, "node.translation");
@@ -82,12 +82,6 @@ static gltfnode_t gltfnode_parse(char* node_s) {
     char* matrix=extract_section("matrix", node_s, "node.matrix");
     char* children=extract_section("children", node_s, "node.children");
     
-    gltfnode_t n;
-    n.name=name;
-    if(mesh){
-	    n.mesh=malloc(sizeof(uint32_t));
-    	    *n.mesh=atoi(mesh);
-    }
     mat4 m=GLM_MAT4_IDENTITY_INIT;
     if(matrix)
 	sscanf(matrix,"[%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f]",&m[0][0],&m[0][1],&m[0][2],&m[0][3],&m[1][0],&m[1][1],&m[1][2],&m[1][3],&m[2][0],&m[2][1],&m[2][2],&m[2][3],&m[3][0],&m[3][1],&m[3][2],&m[3][3]);
@@ -107,10 +101,34 @@ static gltfnode_t gltfnode_parse(char* node_s) {
     	sscanf(scale,"[%f,%f,%f]",&vec[0],&vec[1],&vec[2]);
 	glm_scale(m,vec);
     }
-    glm_mat4_copy(m,n.matrix);
-    if(children)
-	    n.children=children;
     
+    gltfnode_t* n=malloc(sizeof(gltfnode_t));
+    n->name=name;
+    n->matrix=malloc(sizeof(mat4));
+    glm_mat4_copy(m,*n->matrix);
+    
+    if(mesh){
+    	    n->mesh=malloc(sizeof(uint32_t));
+    	    *n->mesh=atoi(mesh);
+   	    free(mesh);
+    }
+    
+    if(children && strlen(children)>0){
+    	n->children=malloc(sizeof(dynarr_uint32_t));	
+    	dynarr_uint32_init(n->children);
+    	char* node=strtok(children,"[");
+    	node=strtok(node,"]");
+    	node=strtok(node,",");
+   
+    	while(node){
+		//log_error("-------------------node%s",node);
+    		dynarr_uint32_push(n->children,atoi(node));
+		node=strtok(NULL,",");
+    	}
+	free(children);
+    }
+    else
+	    n->children=NULL;
     free(translation);
     free(rotation);
     free(scale);
@@ -127,23 +145,39 @@ dynarr_gltfnode_t* gltfnodes_parse(char* nodes_s) {
     while (offset + i < max_length) {
         char* gltfnode_s=extract_section("{",&nodes_s[offset], "gltfnode");
 
-        gltfnode_t n = gltfnode_parse(gltfnode_s);
-        dynarr_gltfnode_push(nodes, n);
+        gltfnode_t* n = gltfnode_parse(gltfnode_s);
+        dynarr_gltfnode_push(nodes, *n);
 
         offset += strlen(gltfnode_s);
         i++;
         free(gltfnode_s);
+	free(n);
     }
     return nodes;
 }
 
-static gltfscene_t gltfscene_parse(char* scene_s) {
-    gltfscene_t s;
-    char* nodes=extract_section("nodes", scene_s, "scene.nodes");
-    char* arr=strtok(nodes,"[");
-    arr=strtok(nodes,"]");
-    s.nodes=arr;
-
+static gltfscene_t* gltfscene_parse(char* scene_s) {
+    char* nodes_s=extract_section("nodes", scene_s, "scene.nodes");
+    if(!nodes_s || strlen(nodes_s)==0) return NULL;
+    
+    char* node=strtok(nodes_s,"[");
+    node=strtok(node,"]");
+    node=strtok(node,",");
+    
+    gltfscene_t *s=malloc(sizeof(gltfscene_t));
+    if(!node){
+    	s->nodes=NULL;
+	free(nodes_s);
+	return s;
+    }
+    dynarr_uint32_t *nodes=malloc(sizeof(dynarr_uint32_t));
+    dynarr_uint32_init(nodes);
+    while(node){
+    	dynarr_uint32_push(nodes,atoi(node));
+	node=strtok(NULL,",");
+    }
+    s->nodes=nodes;
+    free(nodes_s);
     return s;
 }
 
@@ -157,19 +191,21 @@ dynarr_gltfscene_t* gltfscenes_parse(char* scenes_s) {
     while (offset + i < max_length) {
         char* gltfscene_s=extract_section("{",&scenes_s[offset], "gltfscene");
 
-        gltfscene_t s = gltfscene_parse(gltfscene_s);
-        dynarr_gltfscene_push(scenes, s);
+        gltfscene_t* s = gltfscene_parse(gltfscene_s);
+        dynarr_gltfscene_push(scenes, *s);
 	
         offset += strlen(gltfscene_s);
         i++;
         free(gltfscene_s);
+	free(s);
     }
     return scenes;
 }
 
 static gltfbuff_t gltfbuff_parse(char* buff_s) {
-    gltfbuff_t b;
     char* byteLength=extract_field_value("byteLength", buff_s, "buffer.byteLength");
+    
+    gltfbuff_t b;
     b.byteLength = atoi(byteLength);
     free(byteLength); 
     return b;
@@ -203,15 +239,18 @@ static bufferView_t bufferView_parse(char* bufferView_s) {
                         "bufferView.byteLength");
     char* target = extract_field_value("target", bufferView_s,
                                        "bufferView.target");
+    char* byteStride=extract_field_value("byteStride", bufferView_s, "bufferView.byteStride");
     bufferView_t b;
     b.buffer = atoi(buffer);
     b.byteOffset = atoi(byteOffset);
     b.byteLength = atoi(byteLength);
     b.target = target ? atoi(target) : 0;
+    b.byteStride = byteStride?atoi(byteStride):0;
 
     free(buffer);
     free(byteOffset);
     free(byteLength);
+    free(byteStride);
     if (target) {
         free(target);
     }
@@ -362,9 +401,14 @@ gltf_t* gltf_parse(char* chunkData) {
     gltf->accessors=extract_section("accessors", chunkData, "accessors");
     gltf->buffers=extract_section("buffers", chunkData, "buffers");
     gltf->scenes=extract_section("scenes", chunkData, "scenes");
-    log_debug(gltf->scenes);
     gltf->nodes=extract_section("nodes\":[{", chunkData, "nodes");
-    log_debug(gltf->nodes);
+    char* default_scene=extract_section("scene", chunkData, "scene");
+    if(default_scene){
+    	gltf->default_scene=atoi(default_scene);
+    }
+    else
+	    gltf->default_scene=0;
+    free(default_scene);
     return gltf;
 }
 
@@ -445,6 +489,8 @@ void gltf_destroy(gltf_t* gltf) {
     free(gltf->accessors);
     free(gltf->bufferViews);
     free(gltf->buffers);
+    free(gltf->scenes);
+    free(gltf->nodes);
 }
 
 static geometry_data_t* indices_load(glb_t* glb, gltfprimitive_t* primitive,
@@ -457,12 +503,12 @@ static geometry_data_t* indices_load(glb_t* glb, gltfprimitive_t* primitive,
         return NULL;
     }
     uint32_t indices_count = accessors->elems[*accessor].count;
-    componentType_t component_type = accessors->elems[*accessor].componentType;
-    if (component_type != UNSIGNED_INT && component_type != UNSIGNED_SHORT && component_type!=UNSIGNED_BYTE) {
+    GLenum component_type = accessors->elems[*accessor].componentType;
+    if (component_type != GL_UNSIGNED_INT && component_type != GL_UNSIGNED_SHORT && component_type!=GL_UNSIGNED_BYTE) {
         log_error("indices ComponentType not UNSIGNED_INT");
         return NULL;
     }
-    uint32_t component_size = component_type == UNSIGNED_INT ? sizeof(uint32_t) : component_type==UNSIGNED_SHORT?sizeof(uint16_t):sizeof(uint8_t);
+    uint32_t component_size = component_type == GL_UNSIGNED_INT ? sizeof(uint32_t) : component_type==GL_UNSIGNED_SHORT?sizeof(uint16_t):sizeof(uint8_t);
     type_t type = accessors->elems[*accessor].type;
     uint32_t buffView_ind = accessors->elems[*accessor].bufferView;
     bufferView_t* buffView = dynarr_bufferView_get(bufferViews, buffView_ind);
@@ -474,12 +520,14 @@ static geometry_data_t* indices_load(glb_t* glb, gltfprimitive_t* primitive,
     
     geometry_data_t *indices=malloc(sizeof(geometry_data_t));
     indices->data = malloc(size * indices_count);
+    uint32_t byteStride = buffView->byteStride;
+    byteStride=byteStride==0?size:byteStride;
     indices->count=indices_count;
     indices->component_type=component_size;
     indices->component_size=type;
     indices->GL_component_type=component_type; 
     while (index < indices_count) {
-        uint32_t offset = startOffset + index * size;
+        uint32_t offset = startOffset + index * byteStride;
         memcpy(&((char*)indices->data)[index*size],
                &glb->chunks.elems[buff_indx].chunkData[offset], component_size);
 	//log_info("i%d=%d", index, ((uint32_t*)indices->data)[index]);
@@ -495,12 +543,12 @@ static geometry_data_t* position_load(glb_t* glb, gltfprimitive_t *primitive,
     uint32_t accessor = *htable_attributes_get(
        & primitive->attributes, "POSITION");
     uint32_t vertices_count = accessors->elems[accessor].count;
-    componentType_t component_type = accessors->elems[accessor].componentType;
-    if (component_type != FLOAT) {
+    GLenum component_type = accessors->elems[accessor].componentType;
+    if (component_type != GL_FLOAT) {
         log_error("POSITION ComponentType not FLOAT");
         return NULL;
     }
-    uint32_t component_size = 4;
+    uint32_t component_size = sizeof(float);
     type_t type = accessors->elems[accessor].type;
     uint32_t vertices_buffView_ind = accessors->elems[accessor].bufferView;
     bufferView_t* vertices_buffView =
@@ -510,6 +558,8 @@ static geometry_data_t* position_load(glb_t* glb, gltfprimitive_t *primitive,
 
     uint32_t index = 0;
     uint32_t size = component_size * type;
+    uint32_t byteStride = vertices_buffView->byteStride;
+    byteStride=byteStride==0?size:byteStride;
     geometry_data_t* vertices=malloc(sizeof(geometry_data_t)); 
     vertices->data=malloc(size * vertices_count);
     vertices->count=vertices_count;
@@ -518,7 +568,7 @@ static geometry_data_t* position_load(glb_t* glb, gltfprimitive_t *primitive,
     vertices->GL_component_type=component_type;
     
     while (index < vertices_count) {
-        uint32_t offset = startOffset + index * size;
+        uint32_t offset = startOffset + index * byteStride ;
 
         memcpy(&((char*)vertices->data)[index*size],
                &glb->chunks.elems[buff_indx].chunkData[offset], component_size);
@@ -555,11 +605,12 @@ model_t* model_load(char* filename) {
     dynarr_gltfbuff_t* buffs=gltfbuffs_parse(gltf->buffers);
     dynarr_gltfscene_t* scenes=gltfscenes_parse(gltf->scenes);
     dynarr_gltfnode_t* nodes=gltfnodes_parse(gltf->nodes);
-    (void)nodes; 
-    (void)scenes;
-    // loading data
+    
     model_t *model=malloc(sizeof(model_t));
+    model->scenes=scenes;
+    model->nodes=nodes; 
     model->meshes=malloc(sizeof(dynarr_mesh_t));
+    model->default_scene=gltf->default_scene;
     dynarr_mesh_init(model->meshes);
 
     for(size_t i=0;i<meshes->length;i++){
@@ -577,6 +628,7 @@ model_t* model_load(char* filename) {
 	}
 	dynarr_mesh_push(model->meshes, m);
     }
+
     // cleanup
     // free buffs
     dynarr_gltfbuff_destroy(buffs);
@@ -608,14 +660,16 @@ model_t* model_load(char* filename) {
 }
 
 void gltfnode_destroy(gltfnode_t* n){
-	free(n->name);
-	if(n->mesh)
+	if(n->name)free(n->name);
+	free(n->matrix);
+	if(n->mesh)	
 		free(n->mesh);
 	if(n->children)
-		free(n->children);
+		dynarr_uint32_destroy(n->children);
 }
 
 void gltfscene_destroy(gltfscene_t* s){
+	dynarr_uint32_destroy(s->nodes);
 	free(s->nodes);
 }
 
@@ -638,10 +692,27 @@ void mesh_destroy(mesh_t* m){
 }
 
 void model_destroy(model_t* m){
+	if(m->meshes){
 	for(size_t i=0;i<m->meshes->length;i++)
 	{
 		mesh_destroy(&m->meshes->elems[i]);
 	}
 	dynarr_mesh_destroy(m->meshes);
 	free(m->meshes);
+	}
+	if(m->scenes){
+    	for (size_t i = 0; i < m->scenes->length; i++) {
+    	    gltfscene_destroy(&m->scenes->elems[i]);
+    	}
+    	dynarr_gltfscene_destroy(m->scenes);
+    	free(m->scenes);
+	}
+    	
+	if(m->nodes){
+	for (size_t i = 0; i < m->nodes->length; i++) {
+	 gltfnode_destroy(&m->nodes->elems[i]);
+	}
+    	dynarr_gltfnode_destroy(m->nodes);
+    	free(m->nodes);
+	}
 }

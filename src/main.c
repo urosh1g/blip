@@ -155,6 +155,49 @@ GLFWwindow* init_glad_glfw() {
     return window;
 }
 
+void primitive_draw(uint32_t VAO, primitive_t* p){
+   glBindVertexArray(VAO);
+   glDrawElements(p->rendermode, p->indices->count, p->indices->GL_component_type, 0);
+   glBindVertexArray(0);
+} 
+
+void gltfnode_draw(gltfnode_t* root, mat4 model, uint32_t model_uniform_id, model_t* loadedmodel, uint32_t** VAO){
+	if(!root) return;
+	glm_mat4_mul(model, model, *root->matrix);
+	dynarr_uint32_t *children=root->children;
+	if(children){
+		for(size_t ind=0;ind<children->length;ind++){	
+		uint32_t c=children->elems[ind];
+		gltfnode_t* node=&loadedmodel->nodes->elems[c];
+		gltfnode_draw(node, model, model_uniform_id, loadedmodel, VAO);
+	}
+	}
+	if(root->mesh)
+	{
+		uint32_t mesh_index=*root->mesh;
+		size_t primitives_count=loadedmodel->meshes->elems[mesh_index].primitives->length;
+		for(size_t j=0;j<primitives_count;j++){
+   			primitive_t* p = &loadedmodel->meshes->elems[mesh_index].primitives->elems[j];
+   			glUniformMatrix4fv(model_uniform_id, 1, GL_FALSE, (const float*)model);
+			primitive_draw(VAO[mesh_index][j], p);
+		}
+	}
+	mat4 inv;
+	glm_mat4_inv(*root->matrix,inv);
+	glm_mat4_mul(model,model,inv);	
+}
+
+void model_draw(model_t* m, mat4 model, uint32_t model_uniform_id, uint32_t** VAO){
+        //size_t mesh_count=m->meshes->length;
+	gltfscene_t* scene=dynarr_gltfscene_get(m->scenes,m->default_scene);
+	size_t rootnodes_count=scene->nodes->length;
+	for(size_t rootnode=0;rootnode<rootnodes_count;rootnode++)
+	{
+		gltfnode_t* root=&m->nodes->elems[rootnode];
+		gltfnode_draw(root, model, model_uniform_id, m, VAO);
+	}
+}
+
 int main() {
     FILE* file_log = fopen("log.txt", "w");
     log_add_sink((log_sink_t){
@@ -183,7 +226,7 @@ int main() {
      unsigned int indices[] = {0, 1, 2, 0, 2, 3};
      */
 
-    model_t* loadedmodel=model_load("assets/cube.glb");
+    model_t* loadedmodel=model_load("assets/Duck.glb");
     uint32_t mesh_count=loadedmodel->meshes->length;
     uint32_t** VAO=malloc(sizeof(uint32_t*)*mesh_count);
     for(size_t i=0; i<mesh_count;i++){
@@ -247,21 +290,13 @@ int main() {
         GLuint projection_id = glGetUniformLocation(program, "projection");
         (void)camera;
 
+	model_draw(loadedmodel, model, model_id, VAO);
+
         glUniformMatrix4fv(model_id, 1, GL_FALSE, (const float*)model);
         glUniformMatrix4fv(view_id, 1, GL_FALSE, (const float*)camera.view);
         glUniformMatrix4fv(projection_id, 1, GL_FALSE,
                            (const float*)camera.projection);
 
-        size_t mesh_count=loadedmodel->meshes->length;
-	for(size_t i=0;i<mesh_count;i++){
-		size_t primitives_count=loadedmodel->meshes->elems[i].primitives->length;
-		for(size_t j=0;j<primitives_count;j++){
-			glBindVertexArray(VAO[i][j]);
-			primitive_t* primitive = &loadedmodel->meshes->elems[i].primitives->elems[j];
-        		glDrawElements(primitive->rendermode, primitive->indices->count, primitive->indices->GL_component_type, 0);
-        		glBindVertexArray(0);
-		}
-	}
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         igNewFrame();
