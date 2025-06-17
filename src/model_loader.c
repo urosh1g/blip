@@ -7,9 +7,11 @@ void geometry_data_destroy(geometry_data_t* gd){
 
 void primitive_destroy(primitive_t* p){
 	geometry_data_destroy(p->vertices);
-	geometry_data_destroy(p->indices);
 	free(p->vertices);
+	if(p->indices){	
+	geometry_data_destroy(p->indices);
 	free(p->indices);
+	}
 }
 
 void mesh_destroy(mesh_t* m){
@@ -182,7 +184,7 @@ model_t* model_load(char* filename) {
     		primitive_t primitive;
     		primitive.vertices=vertices;
     		primitive.indices=indices;
-		log_info("mesh:%d,prim:%d,vertcount=%d indcount=%d",i,j,vertices->count,indices->count);
+		//log_info("mesh:%d,prim:%d,vertcount=%d",i,j,vertices->count);
     		primitive.rendermode = meshes->elems[i].primitives.elems[j].mode;
 		dynarr_primitive_push(m.primitives,primitive);
 	}
@@ -222,7 +224,10 @@ model_t* model_load(char* filename) {
 
 void primitive_draw(uint32_t VAO, primitive_t* p){
    glBindVertexArray(VAO);
-   glDrawElements(p->rendermode, p->indices->count, p->indices->GL_component_type, 0);
+   if(p->indices)
+   	glDrawElements(p->rendermode, p->indices->count, p->indices->GL_component_type, 0);
+   else
+	glDrawArrays(p->rendermode,0, p->vertices->count);
    glBindVertexArray(0);
 } 
 
@@ -258,7 +263,7 @@ void model_draw(model_t* m, mat4 model, uint32_t model_uniform_id, uint32_t** VA
         //size_t mesh_count=m->meshes->length;
 	gltfscene_t* scene=dynarr_gltfscene_get(m->scenes,m->default_scene);
 	size_t rootnodes_count=scene->nodes->length;
-	log_info("ROOTNODES_COUNT:%d",rootnodes_count);	
+	//log_info("ROOTNODES_COUNT:%d",rootnodes_count);	
 	for(size_t rootnode=0;rootnode<rootnodes_count;rootnode++)
 	{
 		gltfnode_t* root=&m->nodes->elems[rootnode];
@@ -278,19 +283,22 @@ GLuint** model_get_VAOs(model_t* loadedmodel){
     	for(size_t j=0; j<primitive_count;j++){
 	    log_info("j=%d, len=%d",j,primitive_count);
 	    primitive_t* primitive = &loadedmodel->meshes->elems[i].primitives->elems[j];
-	    unsigned int VBO, EBO;
-	    glGenBuffers(1, &VBO);
-	    glGenBuffers(1, &EBO);
 	    glBindVertexArray(VAO[i][j]);
-	  
+	    unsigned int VBO;
+	    glGenBuffers(1, &VBO);
 	    glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	    glBufferData(GL_ARRAY_BUFFER, primitive->vertices->count * primitive->vertices->component_size * primitive->vertices->component_type, primitive->vertices->data,
 	                 GL_STATIC_DRAW);
-	    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	    glBufferData(GL_ELEMENT_ARRAY_BUFFER, primitive->indices->count * primitive->indices->component_size * primitive->indices->component_type, primitive->indices->data, GL_STATIC_DRAW);
-	    
 	    glVertexAttribPointer(0, primitive->vertices->component_size, primitive->vertices->GL_component_type, primitive->vertices->normalized, 0, 0);
 	    glEnableVertexAttribArray(0);
+	    
+	   if(primitive->indices){ 
+	    	unsigned int EBO;
+	    	glGenBuffers(1, &EBO);
+	  
+	    	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	    	glBufferData(GL_ELEMENT_ARRAY_BUFFER, primitive->indices->count * primitive->indices->component_size * primitive->indices->component_type, primitive->indices->data, GL_STATIC_DRAW);
+	   }
 	    /*
 	    log_info("count:%d",primitive->vertices->count);
 	    log_info("ctype:%d",primitive->vertices->component_type);

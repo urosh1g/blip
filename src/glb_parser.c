@@ -384,13 +384,13 @@ static gltfmesh_t mesh_parse(char* mesh_str) {
         htable_attributes_init(&p.attributes, NULL);
         p.mode = mode ? atoi(mode) : GL_TRIANGLES;
         htable_attributes_insert(&p.attributes, "POSITION", atoi(POSITION));
-        htable_attributes_insert(&p.attributes, "indices", atoi(indices));
+        if(indices) htable_attributes_insert(&p.attributes, "indices", atoi(indices));
 
         dynarr_gltfprimitive_push(&mesh.primitives, p);
         offset += strlen(primitive_str);
         i++;
 
-        free(indices);
+        if(indices) free(indices);
         free(POSITION);
         free(mode);
         free(primitive_str);
