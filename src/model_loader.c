@@ -50,21 +50,22 @@ void model_destroy(model_t* m){
 static geometry_data_t* indices_load(glb_t* glb, gltfprimitive_t* primitive,
                   dynarr_accessor_t* accessors,
                   dynarr_bufferView_t* bufferViews) {
-    uint32_t* accessor = htable_attributes_get(
+    uint32_t* accessor_pos = htable_attributes_get(
         &primitive->attributes, "indices");
-    if (!accessor) {
+    if (!accessor_pos) {
         log_error("no indices found");
         return NULL;
     }
-    uint32_t indices_count = accessors->elems[*accessor].count;
-    GLenum component_type = accessors->elems[*accessor].componentType;
+    accessor_t* a=&accessors->elems[*accessor_pos];
+    uint32_t indices_count = a->count;
+    GLenum component_type = a->componentType;
     if (component_type != GL_UNSIGNED_INT && component_type != GL_UNSIGNED_SHORT && component_type!=GL_UNSIGNED_BYTE) {
         log_error("indices ComponentType not UNSIGNED_INT");
         return NULL;
     }
     uint32_t component_size = component_type == GL_UNSIGNED_INT ? sizeof(uint32_t) : component_type==GL_UNSIGNED_SHORT?sizeof(uint16_t):sizeof(uint8_t);
-    type_t type = accessors->elems[*accessor].type;
-    uint32_t buffView_ind = accessors->elems[*accessor].bufferView;
+    type_t type = a->type;
+    uint32_t buffView_ind = a->bufferView;
     bufferView_t* buffView = dynarr_bufferView_get(bufferViews, buffView_ind);
     uint32_t buff_indx = buffView->buffer + 1; // first chunk is gltf
     uint32_t startOffset = buffView->byteOffset;
@@ -97,17 +98,20 @@ static geometry_data_t* indices_load(glb_t* glb, gltfprimitive_t* primitive,
 static geometry_data_t* position_load(glb_t* glb, gltfprimitive_t *primitive,
                    dynarr_accessor_t* accessors,
                    dynarr_bufferView_t* bufferViews) {
-    uint32_t accessor = *htable_attributes_get(
+    uint32_t accessor_pos = *htable_attributes_get(
        & primitive->attributes, "POSITION");
-    uint32_t vertices_count = accessors->elems[accessor].count;
-    GLenum component_type = accessors->elems[accessor].componentType;
+    log_info("POSITION accessor index is %d",accessor_pos);
+    accessor_t* a=&accessors->elems[accessor_pos];
+    uint32_t vertices_count = a->count;
+    GLenum component_type = a->componentType;
+    uint32_t a_byteOffset = a->byteOffset;
     if (component_type != GL_FLOAT) {
         log_error("POSITION ComponentType not FLOAT");
         return NULL;
     }
     uint32_t component_size = sizeof(float);
-    type_t type = accessors->elems[accessor].type;
-    uint32_t vertices_buffView_ind = accessors->elems[accessor].bufferView;
+    type_t type = a->type;
+    uint32_t vertices_buffView_ind = a->bufferView;
     bufferView_t* vertices_buffView =
         dynarr_bufferView_get(bufferViews, vertices_buffView_ind);
     uint32_t buff_indx = vertices_buffView->buffer + 1; // first chunk is gltf
@@ -123,10 +127,10 @@ static geometry_data_t* position_load(glb_t* glb, gltfprimitive_t *primitive,
     vertices->component_type=component_size;
     vertices->component_size=type;
     vertices->GL_component_type=component_type;
-    vertices->normalized=accessors->elems[accessor].normalized; 
+    vertices->normalized=a->normalized; 
     char* buff=glb->chunks.elems[buff_indx].chunkData;
     while (index < vertices_count) {
-        uint32_t offset = startOffset + index * byteStride ;
+        uint32_t offset = startOffset + a_byteOffset + index * byteStride ;
         memcpy(&((char*)vertices->data)[index*size],
                &buff[offset], component_size);
         memcpy(&((char*)vertices->data)[index*size + component_size],
@@ -178,6 +182,7 @@ model_t* model_load(char* filename) {
     		primitive_t primitive;
     		primitive.vertices=vertices;
     		primitive.indices=indices;
+		log_info("mesh:%d,prim:%d,vertcount=%d indcount=%d",i,j,vertices->count,indices->count);
     		primitive.rendermode = meshes->elems[i].primitives.elems[j].mode;
 		dynarr_primitive_push(m.primitives,primitive);
 	}
@@ -223,7 +228,8 @@ void primitive_draw(uint32_t VAO, primitive_t* p){
 
 void gltfnode_draw(gltfnode_t* root, mat4 model, uint32_t model_uniform_id, model_t* loadedmodel, uint32_t** VAO){
 	if(!root) return;
-	glm_mat4_mul(model,*root->matrix, model);
+	//glm_mat4_mul(model,*root->matrix, model);
+	(void) model;
 	dynarr_uint32_t *children=root->children;
 	if(children){
 		for(size_t ind=0;ind<children->length;ind++){	
@@ -236,6 +242,7 @@ void gltfnode_draw(gltfnode_t* root, mat4 model, uint32_t model_uniform_id, mode
 	{
 		uint32_t mesh_index=*root->mesh;
 		size_t primitives_count=loadedmodel->meshes->elems[mesh_index].primitives->length;
+		log_info("for mesh_index=%d prim_count is %d",mesh_index, primitives_count);
 		for(size_t j=0;j<primitives_count;j++){
    			primitive_t* p = &loadedmodel->meshes->elems[mesh_index].primitives->elems[j];
    			glUniformMatrix4fv(model_uniform_id, 1, GL_FALSE, (const float*)model);
@@ -244,17 +251,18 @@ void gltfnode_draw(gltfnode_t* root, mat4 model, uint32_t model_uniform_id, mode
 	}
 	mat4 inv;
 	glm_mat4_inv(*root->matrix,inv);
-	glm_mat4_mul(model,inv,model);	
+	//glm_mat4_mul(model,inv,model);	
 }
 
 void model_draw(model_t* m, mat4 model, uint32_t model_uniform_id, uint32_t** VAO){
         //size_t mesh_count=m->meshes->length;
 	gltfscene_t* scene=dynarr_gltfscene_get(m->scenes,m->default_scene);
 	size_t rootnodes_count=scene->nodes->length;
-	
+	log_info("ROOTNODES_COUNT:%d",rootnodes_count);	
 	for(size_t rootnode=0;rootnode<rootnodes_count;rootnode++)
 	{
 		gltfnode_t* root=&m->nodes->elems[rootnode];
+		log_info("%d. %s",rootnode,root->name);
 		gltfnode_draw(root, model, model_uniform_id, m, VAO);
 	}
 }
@@ -284,15 +292,20 @@ GLuint** model_get_VAOs(model_t* loadedmodel){
 	    glVertexAttribPointer(0, primitive->vertices->component_size, primitive->vertices->GL_component_type, primitive->vertices->normalized, 0, 0);
 	    glEnableVertexAttribArray(0);
 	    
+	    log_info("count:%d",primitive->vertices->count);
+	    log_info("ctype:%d",primitive->vertices->component_type);
+	    log_info("csize:%d",primitive->vertices->component_size);
+	    log_info("GLctype:%d",primitive->vertices->GL_component_type);
+	    log_info("normalized:%s",primitive->vertices->normalized?"true":"false");
+	    for(size_t ind=0;ind<primitive->vertices->count;ind++)
+	    	log_info("%f %f %f",((float*)primitive->vertices->data)[3*ind],((float*)primitive->vertices->data)[3*ind+1],((float*)primitive->vertices->data)[3*ind+2]);
 	    log_info("count:%d",primitive->indices->count);
 	    log_info("ctype:%d",primitive->indices->component_type);
 	    log_info("csize:%d",primitive->indices->component_size);
 	    log_info("GLctype:%d",primitive->indices->GL_component_type);
-	    log_info("normalized:%s",primitive->vertices->normalized?"true":"false");
-	    //for(size_t ind=0;ind<primitive->vertices->count;ind++)
-	   // 	log_info("%f %f %f",((float*)primitive->vertices->data)[3*ind],((float*)primitive->vertices->data)[3*ind+1],((float*)primitive->vertices->data)[3*ind+2]);
-	   // for(size_t ind=0;ind<primitive->indices->count;ind++)
-	   // 	log_info("%d",((uint16_t*)primitive->indices->data)[ind]);
+	    log_info("normalized:%s",primitive->indices->normalized?"true":"false");
+	    for(size_t ind=0;ind<primitive->indices->count;ind++)
+	    	log_info("%d",((uint16_t*)primitive->indices->data)[ind]);
 	    
 	    glBindVertexArray(0);
     	}

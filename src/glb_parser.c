@@ -60,8 +60,8 @@ static char* extract_field_value(char* startstr, char* chunk,
         return NULL;
     start++;
     char* end = strchr(start, ',');
-    if (!end)
-        end = strchr(start, '}');
+    if(!end)
+    end = strstr(start, "}");
     if (!end)
         return NULL;
     char *subchunk = malloc(end - start + 1);
@@ -93,7 +93,7 @@ static gltfnode_t* gltfnode_parse(char* node_s) {
 	if(fields_read!=16)
 		log_error("Couldn't read matrix");
     	glm_mat4_make(gltfm,m);
-	glm_mat4_transpose_to(m,m);
+	//glm_mat4_transpose_to(m,m);
 	for(int i=0;i<4;i++){
 		for(int j=0;j<4;j++)
 			log_info("m[%d,%d]=%f",i,j,m[i][j]);
@@ -376,7 +376,8 @@ static gltfmesh_t mesh_parse(char* mesh_str) {
 	char* primitive_str=extract_section("{", primitives, "primitive");
 
 	char* mode=extract_field_value("mode", primitive_str, "mode");
-        char* POSITION=extract_field_value("POSITION", primitive_str, "POSITION");
+        char* attributes=extract_section("attributes", primitive_str, "attributes");
+	char* POSITION=extract_field_value("POSITION", attributes, "POSITION");
         char* indices=extract_field_value("indices", primitive_str, "indices");
 	
        gltfprimitive_t p;
@@ -393,6 +394,7 @@ static gltfmesh_t mesh_parse(char* mesh_str) {
         free(POSITION);
         free(mode);
         free(primitive_str);
+	free(attributes);
     }
     free(primitives);
     return mesh;
