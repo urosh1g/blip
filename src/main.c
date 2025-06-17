@@ -183,7 +183,7 @@ int main() {
      unsigned int indices[] = {0, 1, 2, 0, 2, 3};
      */
 
-    model_t* loadedmodel=model_load("assets/Duck.glb");
+    model_t* loadedmodel = model_load("assets/Fox.glb");
     uint32_t** VAO = model_get_VAOs(loadedmodel);
     /*
     unsigned int img_id = tex_load("./assets/img.png", true);
@@ -196,9 +196,9 @@ int main() {
     */
     mat4 model;
     glm_mat4_identity(model);
-    vec3 v={0.1,0.1,0.1};
-    glm_scale(model,v);
-    vec3 camera_pos = {0, 0, 20};
+    vec3 v = {0.1, 0.1, 0.1};
+    glm_scale(model, v);
+    vec3 camera_pos = {10, 10, 10};
     vec3 world_up = {0, 1, 0};
     camera_t camera;
     camera_create(&camera, camera_pos, world_up, 16 / 9.0f, 0.1f, 100.0f, 45.0f,
@@ -219,7 +219,7 @@ int main() {
         GLuint projection_id = glGetUniformLocation(program, "projection");
         (void)camera;
 
-	model_draw(loadedmodel, model, model_id, VAO);
+        model_draw(loadedmodel, model, model_id, VAO);
 
         glUniformMatrix4fv(model_id, 1, GL_FALSE, (const float*)model);
         glUniformMatrix4fv(view_id, 1, GL_FALSE, (const float*)camera.view);
@@ -243,9 +243,9 @@ int main() {
     ImGui_ImplGlfw_Shutdown();
     igDestroyContext(imgui_ctx);
 
-    //glDeleteVertexArrays(1, &VAO);
-    //glDeleteBuffers(1, &VBO);
-    //glDeleteBuffers(1, &EBO);
+    // glDeleteVertexArrays(1, &VAO);
+    // glDeleteBuffers(1, &VBO);
+    // glDeleteBuffers(1, &EBO);
 
     glfwDestroyWindow(window);
     glfwTerminate();

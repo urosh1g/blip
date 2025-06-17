@@ -8,7 +8,7 @@
 #include <glad/glad.h>
 #include <cglm/cglm.h>
 
-dynarr_define_for(uint32_t,uint32);
+dynarr_define_for(uint32_t, uint32);
 
 typedef enum type_t {
     SCALAR = 1,
@@ -20,15 +20,15 @@ typedef enum type_t {
     MAT4 = 16
 } type_t;
 
-typedef struct gltfnode_t{
-	char* name;
-	uint32_t* mesh;
-	mat4* matrix;
-	dynarr_uint32_t* children;
-}gltfnode_t;
+typedef struct gltfnode_t {
+    char* name;
+    uint32_t* mesh;
+    mat4* matrix;
+    dynarr_uint32_t* children;
+} gltfnode_t;
 
-typedef struct gltfscene_t{
-	dynarr_uint32_t* nodes; 	
+typedef struct gltfscene_t {
+    dynarr_uint32_t* nodes;
 } gltfscene_t;
 
 typedef struct gltfbuff_t {
