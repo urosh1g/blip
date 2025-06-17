@@ -1,15 +1,17 @@
+#include <glad/glad.h>
 #include <model_loader/model_loader.h>
 #include <logger/logger.h>
-
 void geometry_data_destroy(geometry_data_t* gd){
 	free(gd->data);
 }
+
 void primitive_destroy(primitive_t* p){
 	geometry_data_destroy(p->vertices);
 	geometry_data_destroy(p->indices);
 	free(p->vertices);
 	free(p->indices);
 }
+
 void mesh_destroy(mesh_t* m){
 	for(size_t i=0;i<m->primitives->length;i++)
 	{
@@ -221,14 +223,14 @@ void primitive_draw(uint32_t VAO, primitive_t* p){
 
 void gltfnode_draw(gltfnode_t* root, mat4 model, uint32_t model_uniform_id, model_t* loadedmodel, uint32_t** VAO){
 	if(!root) return;
-	glm_mat4_mul(model, model, *root->matrix);
+	glm_mat4_mul(model,*root->matrix, model);
 	dynarr_uint32_t *children=root->children;
 	if(children){
 		for(size_t ind=0;ind<children->length;ind++){	
-		uint32_t c=children->elems[ind];
-		gltfnode_t* node=&loadedmodel->nodes->elems[c];
-		gltfnode_draw(node, model, model_uniform_id, loadedmodel, VAO);
-	}
+			uint32_t c=children->elems[ind];
+			gltfnode_t* node=&loadedmodel->nodes->elems[c];
+			gltfnode_draw(node, model, model_uniform_id, loadedmodel, VAO);
+		}
 	}
 	if(root->mesh)
 	{
@@ -242,13 +244,14 @@ void gltfnode_draw(gltfnode_t* root, mat4 model, uint32_t model_uniform_id, mode
 	}
 	mat4 inv;
 	glm_mat4_inv(*root->matrix,inv);
-	glm_mat4_mul(model,model,inv);	
+	glm_mat4_mul(model,inv,model);	
 }
 
 void model_draw(model_t* m, mat4 model, uint32_t model_uniform_id, uint32_t** VAO){
         //size_t mesh_count=m->meshes->length;
 	gltfscene_t* scene=dynarr_gltfscene_get(m->scenes,m->default_scene);
 	size_t rootnodes_count=scene->nodes->length;
+	
 	for(size_t rootnode=0;rootnode<rootnodes_count;rootnode++)
 	{
 		gltfnode_t* root=&m->nodes->elems[rootnode];
@@ -256,16 +259,16 @@ void model_draw(model_t* m, mat4 model, uint32_t model_uniform_id, uint32_t** VA
 	}
 }
 
-uint32_t** model_get_VAOs(model_t* loadedmodel){
-    uint32_t mesh_count=loadedmodel->meshes->length;
-    uint32_t** VAO=malloc(sizeof(uint32_t*)*mesh_count);
+GLuint** model_get_VAOs(model_t* loadedmodel){
+    GLuint mesh_count=loadedmodel->meshes->length;
+    GLuint** VAO=malloc(sizeof(GLuint*)*mesh_count);
     for(size_t i=0; i<mesh_count;i++){
-	    log_error("i=%d, len=%d",i,mesh_count);
+	    log_info("i=%d, len=%d",i,mesh_count);
 	    size_t primitive_count=loadedmodel->meshes->elems[i].primitives->length; 
-	    VAO[i]=malloc(sizeof(uint32_t)*primitive_count);
+	    VAO[i]=malloc(sizeof(GLuint)*primitive_count);
 	    glGenVertexArrays(primitive_count, VAO[i]);
     	for(size_t j=0; j<primitive_count;j++){
-	    log_error("j=%d, len=%d",j,primitive_count);
+	    log_info("j=%d, len=%d",j,primitive_count);
 	    primitive_t* primitive = &loadedmodel->meshes->elems[i].primitives->elems[j];
 	    unsigned int VBO, EBO;
 	    glGenBuffers(1, &VBO);
@@ -286,7 +289,10 @@ uint32_t** model_get_VAOs(model_t* loadedmodel){
 	    log_info("csize:%d",primitive->indices->component_size);
 	    log_info("GLctype:%d",primitive->indices->GL_component_type);
 	    log_info("normalized:%s",primitive->vertices->normalized?"true":"false");
-	    log_info("%f %f %f",((float*)primitive->vertices->data)[0],((float*)primitive->vertices->data)[1],((float*)primitive->vertices->data)[2]);
+	    //for(size_t ind=0;ind<primitive->vertices->count;ind++)
+	   // 	log_info("%f %f %f",((float*)primitive->vertices->data)[3*ind],((float*)primitive->vertices->data)[3*ind+1],((float*)primitive->vertices->data)[3*ind+2]);
+	   // for(size_t ind=0;ind<primitive->indices->count;ind++)
+	   // 	log_info("%d",((uint16_t*)primitive->indices->data)[ind]);
 	    
 	    glBindVertexArray(0);
     	}

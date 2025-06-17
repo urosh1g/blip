@@ -1,7 +1,7 @@
 #ifndef _blip_model_loader
 #define _blip_model_loader
 #include <model_loader/glb_parser.h>
-
+#include <glad/glad.h>
 typedef struct geometry_data_t{
 	void *data;
 	uint32_t count;

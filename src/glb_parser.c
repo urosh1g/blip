@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <logger/logger.h>
-
 static char* extract_section(char* start_tag, char* chunk,
                      char* field_name) {
     char* start = strstr(chunk, start_tag);
@@ -82,18 +81,31 @@ static gltfnode_t* gltfnode_parse(char* node_s) {
     char* matrix=extract_section("matrix", node_s, "node.matrix");
     char* children=extract_section("children", node_s, "node.children");
     
-    mat4 m=GLM_MAT4_IDENTITY_INIT;
+    mat4 m;
     if(matrix)
     {
+	float gltfm[16];
 	uint32_t fields_read=sscanf(matrix,"[%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f]",
-			&m[0][0],&m[0][1],&m[0][2],&m[0][3],
-			&m[1][0],&m[1][1],&m[1][2],&m[1][3],
-			&m[2][0],&m[2][1],&m[2][2],&m[2][3],
-			&m[3][0],&m[3][1],&m[3][2],&m[3][3]);
+			&gltfm[0],&gltfm[1],&gltfm[2],&gltfm[3],
+			&gltfm[4],&gltfm[5],&gltfm[6],&gltfm[7],
+			&gltfm[8],&gltfm[9],&gltfm[10],&gltfm[11],
+			&gltfm[12],&gltfm[13],&gltfm[14],&gltfm[15]);
 	if(fields_read!=16)
 		log_error("Couldn't read matrix");
-    	free(matrix);
+    	glm_mat4_make(gltfm,m);
+	glm_mat4_transpose_to(m,m);
+	for(int i=0;i<4;i++){
+		for(int j=0;j<4;j++)
+			log_info("m[%d,%d]=%f",i,j,m[i][j]);
+	}
+	free(matrix);
     }
+    
+    else
+    {
+	glm_mat4_identity(m);
+    }
+    
     if(translation){
     	vec3 vec;
     	sscanf(translation,"[%f,%f,%f]",&vec[0],&vec[1],&vec[2]);
