@@ -12,7 +12,7 @@ int main() {
     glfwMakeContextCurrent(window); 
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
     
-    model_t *m=model_load("assets/Box.glb");
+    model_t *m=model_load("assets/BarramundiFish.glb");
     model_get_VAOs(m);
     log_info("Vertices count:%d",m->meshes->elems[0].primitives->elems[0].vertices->count);
     log_info(" Indices count:%d",m->meshes->elems[0].primitives->elems[0].indices->count);

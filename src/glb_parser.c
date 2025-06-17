@@ -261,18 +261,17 @@ static bufferView_t bufferView_parse(char* bufferView_s) {
     char* byteStride=extract_field_value("byteStride", bufferView_s, "bufferView.byteStride");
     bufferView_t b;
     b.buffer = atoi(buffer);
-    b.byteOffset = atoi(byteOffset);
+    b.byteOffset = byteOffset?atoi(byteOffset):0;
     b.byteLength = atoi(byteLength);
     b.target = target ? atoi(target) : 0;
     b.byteStride = byteStride?atoi(byteStride):0;
 
     free(buffer);
-    free(byteOffset);
+    if(byteOffset) free(byteOffset);
     free(byteLength);
-    free(byteStride);
-    if (target) {
-        free(target);
-    }
+    if(byteStride) free(byteStride);
+    if (target) free(target);
+
     return b;
 }
 
@@ -294,6 +293,7 @@ dynarr_bufferView_t* bufferViews_parse(char* bufferViews_s) {
         i++;
         free(bufferView_s);
     }
+    log_debug("hello hello");
     return buffViews;
 }
 
