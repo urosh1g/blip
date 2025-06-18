@@ -9,4 +9,3 @@ typedef enum {
 } direction_t;
 
 #endif
-

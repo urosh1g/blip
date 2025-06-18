@@ -4,4 +4,3 @@
 #include <ecs/entity.h>
 
 #endif
-

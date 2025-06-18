@@ -22,8 +22,8 @@ typedef struct {
 } camera_t;
 
 void camera_create(camera_t* camera, const vec3 position, const vec3 world_up,
-                        const float aspect, const float near, const float far,
-                        const float fov, camera_projection_type type);
+                   const float aspect, const float near, const float far,
+                   const float fov, camera_projection_type type);
 
 void camera_move(camera_t* camera, direction_t direction, float amount);
 void camera_rotate(camera_t* camera, float delta_yaw, float delta_pitch);
@@ -35,4 +35,3 @@ void camera_rotate(camera_t* camera, float delta_yaw, float delta_pitch);
 void camera_update_view(camera_t* camera);
 
 #endif
-

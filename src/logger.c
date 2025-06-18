@@ -22,7 +22,9 @@ static log_sink_t sinks[LOG_MAX_SINKS] = {(log_sink_t){
 static size_t sinks_len = 1;
 
 static const char* log_levels[] = {"DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
-static const char* log_colors[] = {LOG_COLOR_MAGENTA, LOG_COLOR_BLUE, LOG_COLOR_YELLOW, LOG_COLOR_RED, LOG_COLOR_RED LOG_BG_WHITE};
+static const char* log_colors[] = {LOG_COLOR_MAGENTA, LOG_COLOR_BLUE,
+                                   LOG_COLOR_YELLOW, LOG_COLOR_RED,
+                                   LOG_COLOR_RED LOG_BG_WHITE};
 
 static inline const char* str_log_level(log_level_t level) {
     if (level >= LOG_NUMLEVELS) {
@@ -50,7 +52,9 @@ void _log(log_level_t level, const char* file, int line, const char* fmt, ...) {
             sink = stdout;
         }
 #ifdef __unix__
-        fprintf(sink, "[" "%s" LOG_STYLE_BOLD "%s" LOG_STYLE_RESET "] %s:%d ",
+        fprintf(sink,
+                "["
+                "%s" LOG_STYLE_BOLD "%s" LOG_STYLE_RESET "] %s:%d ",
                 log_colors[level], str_log_level(level), file, line);
         va_start(args, fmt);
         vfprintf(sink, fmt, args);
