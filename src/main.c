@@ -183,7 +183,7 @@ int main() {
      unsigned int indices[] = {0, 1, 2, 0, 2, 3};
      */
 
-    model_t* loadedmodel = model_load("assets/BrainStem.glb");
+    model_t* loadedmodel = model_load("assets/ToyCar.glb");
     uint32_t** VAO = model_get_VAOs(loadedmodel);
     /*
     unsigned int img_id = tex_load("./assets/img.png", true);
@@ -196,7 +196,7 @@ int main() {
     */
     mat4 model;
     glm_mat4_identity(model);
-    vec3 v = {0.1, 0.1, 0.1};
+    vec3 v = {3, 3, 3};
     glm_scale(model, v);
     vec3 camera_pos = {0, 0, 0};
     vec3 world_up = {0, 1, 0};
