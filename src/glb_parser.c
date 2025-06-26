@@ -26,7 +26,7 @@ static char* extract_section(char* start_tag, char* chunk, char* field_name) {
     strncpy(result, start, p - start + 1);
     result[p - start + 1] = '\0';
     (void)field_name;
-    log_debug("found %s\n%s", field_name, result);
+    //log_debug("found %s\n%s", field_name, result);
     return result;
 }
 
@@ -34,7 +34,7 @@ static char* extract_section_between_tags(char* start_tag, char* end_tag,
                                           char* chunk, char* field_name) {
     char* start = strstr(chunk, start_tag);
     if (!start) {
-        log_debug("Couldn't find %s", start_tag);
+        //log_debug("Couldn't find %s", start_tag);
         return NULL;
     }
     char* end = strstr(start, end_tag);
@@ -67,7 +67,8 @@ static char* extract_field_value(char* startstr, char* chunk,
     char* subchunk = malloc(end - start + 1);
     strncpy(subchunk, start, end - start);
     subchunk[end - start] = '\0';
-    log_debug("%s=%s", field_name, subchunk);
+    (void) field_name;
+    //log_debug("%s=%s", field_name, subchunk);
     free(dummy);
     return subchunk;
 }
@@ -75,8 +76,7 @@ static char* extract_field_value(char* startstr, char* chunk,
 static gltfnode_t* gltfnode_parse(char* node_s) {
     char* name = extract_field_value("name", node_s, "node.name");
     char* mesh = extract_field_value("mesh", node_s, "node.mesh");
-    char* translation =
-        extract_section("translation", node_s, "node.translation");
+    char* translation = extract_section("translation", node_s, "node.translation");
     char* rotation = extract_section("rotation", node_s, "node.rotation");
     char* scale = extract_section("scale", node_s, "node.scale");
     char* matrix = extract_section("matrix", node_s, "node.matrix");
@@ -93,11 +93,12 @@ static gltfnode_t* gltfnode_parse(char* node_s) {
         if (fields_read != 16)
             log_error("Couldn't read matrix");
         glm_mat4_make(gltfm, m);
-        // glm_mat4_transpose_to(m,m);
-        for (int i = 0; i < 4; i++) {
+        /*
+	for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++)
                 log_info("m[%d,%d]=%f", i, j, m[i][j]);
         }
+	*/
         free(matrix);
     }
 
@@ -126,7 +127,7 @@ static gltfnode_t* gltfnode_parse(char* node_s) {
     }
 
     gltfnode_t* n = malloc(sizeof(gltfnode_t));
-    n->name = name;
+    n->name = name?name:NULL;
     n->matrix = malloc(sizeof(mat4));
     glm_mat4_copy(m, *n->matrix);
 
@@ -149,7 +150,8 @@ static gltfnode_t* gltfnode_parse(char* node_s) {
             node = strtok(NULL, ",");
         }
         free(children);
-    } else
+    }
+    else
         n->children = NULL;
     return n;
 }
@@ -158,17 +160,16 @@ dynarr_gltfnode_t* gltfnodes_parse(char* nodes_s) {
     dynarr_gltfnode_t* nodes = malloc(sizeof(dynarr_gltfnode_t));
     dynarr_gltfnode_init(nodes);
 
-    uint32_t i = 0, offset = 0;
+    uint32_t comma = 1, offset = 0;
     uint32_t max_length = strlen(nodes_s) - 2;
     log_info("Parsing nodes...");
-    while (offset + i < max_length) {
+    while (offset < max_length) {
         char* gltfnode_s = extract_section("{", &nodes_s[offset], "gltfnode");
 
         gltfnode_t* n = gltfnode_parse(gltfnode_s);
         dynarr_gltfnode_push(nodes, *n);
 
-        offset += strlen(gltfnode_s);
-        i++;
+        offset += strlen(gltfnode_s) + comma;
         free(gltfnode_s);
         free(n);
     }
@@ -203,18 +204,17 @@ dynarr_gltfscene_t* gltfscenes_parse(char* scenes_s) {
     dynarr_gltfscene_t* scenes = malloc(sizeof(dynarr_gltfscene_t));
     dynarr_gltfscene_init(scenes);
 
-    uint32_t i = 0, offset = 0;
+    uint32_t comma=1, offset = 0;
     uint32_t max_length = strlen(scenes_s) - 2;
     log_info("Parsing scenes...");
-    while (offset + i < max_length) {
+    while (offset < max_length) {
         char* gltfscene_s =
             extract_section("{", &scenes_s[offset], "gltfscene");
 
         gltfscene_t* s = gltfscene_parse(gltfscene_s);
         dynarr_gltfscene_push(scenes, *s);
 
-        offset += strlen(gltfscene_s);
-        i++;
+        offset += strlen(gltfscene_s) + comma;
         free(gltfscene_s);
         free(s);
     }
@@ -235,18 +235,17 @@ dynarr_gltfbuff_t* gltfbuffs_parse(char* gltfbuffs_s) {
     dynarr_gltfbuff_t* buffs = malloc(sizeof(dynarr_gltfbuff_t));
     dynarr_gltfbuff_init(buffs);
 
-    uint32_t i = 0, offset = 0;
+    uint32_t comma=1,offset = 0;
     uint32_t max_length = strlen(gltfbuffs_s) - 2;
     log_info("Parsing buffers...");
-    while (offset + i < max_length) {
+    while (offset < max_length) {
         char* gltfbuff_s =
             extract_section("{", &gltfbuffs_s[offset], "gltfbuff");
 
         gltfbuff_t b = gltfbuff_parse(gltfbuff_s);
         dynarr_gltfbuff_push(buffs, b);
 
-        offset += strlen(gltfbuff_s);
-        i++;
+        offset += strlen(gltfbuff_s) + comma;
         free(gltfbuff_s);
     }
     return buffs;
@@ -286,21 +285,19 @@ dynarr_bufferView_t* bufferViews_parse(char* bufferViews_s) {
     dynarr_bufferView_t* buffViews = malloc(sizeof(dynarr_bufferView_t));
     dynarr_bufferView_init(buffViews);
 
-    uint32_t i = 0, offset = 0;
+    uint32_t comma=1, offset = 0;
     uint32_t max_length = strlen(bufferViews_s) - 2;
     log_info("Parsing bufferViews...");
-    while (offset + i < max_length) {
+    while (offset < max_length) {
         char* bufferView_s =
             extract_section("{", &bufferViews_s[offset], "bufferView");
 
         bufferView_t b = bufferView_parse(bufferView_s);
         dynarr_bufferView_push(buffViews, b);
 
-        offset += strlen(bufferView_s);
-        i++;
+        offset += strlen(bufferView_s)+comma;
         free(bufferView_s);
     }
-    log_debug("hello hello");
     return buffViews;
 }
 
@@ -353,10 +350,10 @@ static accessor_t accessor_parse(char* accessor_s) {
 dynarr_accessor_t* accessors_parse(char* accessors_s) {
     dynarr_accessor_t* accessors = malloc(sizeof(dynarr_accessor_t));
     dynarr_accessor_init(accessors);
-    uint32_t i = 0, offset = 0;
-    uint32_t max_length = strlen(accessors_s) - 2;
+    uint32_t comma=1, offset = 0;
+    uint32_t i=0,max_length = strlen(accessors_s) - 2;
     log_info("Parsing accessors...");
-    while (offset + i < max_length) {
+    while (offset < max_length) {
         char* accessor_s =
             extract_section("{", &accessors_s[offset], "accessor");
 
@@ -364,33 +361,17 @@ dynarr_accessor_t* accessors_parse(char* accessors_s) {
         a.index = i;
         dynarr_accessor_push(accessors, a);
 
-        offset += strlen(accessor_s);
-        i++;
+	i++;
+        offset += strlen(accessor_s) + comma;
         free(accessor_s);
     }
     return accessors;
 }
-static gltfmesh_t mesh_parse(char* mesh_str) {
-    log_debug("Parsing mesh...");
-
-    char* primitives = extract_section("primitives", mesh_str, "primitives");
-
-    gltfmesh_t mesh;
-    dynarr_gltfprimitive_init(&mesh.primitives);
-    uint32_t offset = 0;
-    uint32_t i = 0;
-    uint32_t max_length = strlen(primitives) - 2;
-    while (offset < max_length) {
-        log_debug("Getting primitive[%d]...", i);
-        char* primitive_str = extract_section("{", primitives, "primitive");
-
-        char* mode = extract_field_value("mode", primitive_str, "mode");
-        char* attributes =
-            extract_section("attributes", primitive_str, "attributes");
-        char* POSITION =
-            extract_field_value("POSITION", attributes, "POSITION");
-        char* indices =
-            extract_field_value("indices", primitive_str, "indices");
+gltfprimitive_t primitive_parse(char* chunk){
+        char* mode = extract_field_value("mode", chunk, "mode");
+        char* indices =  extract_field_value("indices", chunk, "indices");
+        char* attributes = extract_section("attributes", chunk, "attributes");
+        char* POSITION =  extract_field_value("POSITION", attributes, "POSITION");
 
         gltfprimitive_t p;
         htable_attributes_init(&p.attributes, NULL);
@@ -398,34 +379,54 @@ static gltfmesh_t mesh_parse(char* mesh_str) {
         htable_attributes_insert(&p.attributes, "POSITION", atoi(POSITION));
         if (indices)
             htable_attributes_insert(&p.attributes, "indices", atoi(indices));
+	if(mode)
+		free(mode);
+	free(attributes);
+	free(POSITION);
+	if(indices)
+		free(indices);
+	return p;
+}
 
-        dynarr_gltfprimitive_push(&mesh.primitives, p);
-        offset += strlen(primitive_str);
-        i++;
+dynarr_gltfprimitive_t primitives_parse(char* chunk) {
+    log_info("Parsing primitives...");
+    char* primitives_s = extract_section("primitives", chunk, "primitives");
 
-        if (indices)
-            free(indices);
-        free(POSITION);
-        free(mode);
-        free(primitive_str);
-        free(attributes);
+    dynarr_gltfprimitive_t primitives;
+    dynarr_gltfprimitive_init(&primitives);
+    
+    uint32_t offset = 0, comma=1;
+    uint32_t max_length = strlen(primitives_s) - 2;
+    while (offset < max_length) {
+        char* primitive_s = extract_section("{", &primitives_s[offset], "primitive");
+	gltfprimitive_t p = primitive_parse(primitive_s);	
+	dynarr_gltfprimitive_push(&primitives, p);
+
+        offset += strlen(primitive_s)+comma;
+        free(primitive_s);
     }
-    free(primitives);
+    free(primitives_s);
+    return primitives;
+}
+	
+static gltfmesh_t mesh_parse(char* mesh_str) {
+    gltfmesh_t mesh;
+    mesh.primitives=primitives_parse(mesh_str);
+    mesh.name=extract_field_value("name",mesh_str,"mesh.name");
     return mesh;
 }
 dynarr_gltfmesh_t* meshes_parse(char* chunk) {
+    log_info("Parsing meshes...");
     dynarr_gltfmesh_t* meshes = malloc(sizeof(dynarr_gltfmesh_t));
     dynarr_gltfmesh_init(meshes);
-    uint32_t i = 0, offset = 0;
+    uint32_t comma=1, offset = 0;
     uint32_t max_length = strlen(chunk) - 2;
-    log_info("Parsing meshes...");
-    while (offset + i < max_length) {
+    while (offset < max_length) {
         char* mesh = extract_section("{", &chunk[offset], "mesh");
-        // log_info(mesh);
+	//log_debug("offset=%d, mesh=%s, strlen(mesh)=%d",offset,mesh,strlen(mesh));
         gltfmesh_t m = mesh_parse(mesh);
         dynarr_gltfmesh_push(meshes, m);
-        offset += strlen(mesh);
-        i++;
+        offset += strlen(mesh)+comma;
         free(mesh);
     }
     return meshes;
@@ -434,13 +435,13 @@ dynarr_gltfmesh_t* meshes_parse(char* chunk) {
 gltf_t* gltf_parse(char* chunkData) {
     gltf_t* gltf = malloc(sizeof(gltf_t));
     gltf->meshes = extract_section("meshes", chunkData, "meshes");
+    gltf->accessors = extract_section("accessors", chunkData, "accessors");
     gltf->bufferViews =
         extract_section("bufferViews", chunkData, "bufferViews");
-    gltf->accessors = extract_section("accessors", chunkData, "accessors");
     gltf->buffers = extract_section("buffers", chunkData, "buffers");
     gltf->scenes = extract_section("scenes", chunkData, "scenes");
     gltf->nodes = extract_section("nodes\":[{", chunkData, "nodes");
-    char* default_scene = extract_section("scene", chunkData, "scene");
+    char* default_scene = extract_field_value("scene", chunkData, "scene");
     if (default_scene) {
         gltf->default_scene = atoi(default_scene);
     } else
@@ -450,6 +451,7 @@ gltf_t* gltf_parse(char* chunkData) {
 }
 
 glb_t* glb_parse(char* filename) {
+    log_info("Parsing .glb file...");
     FILE* glb_fp = fopen(filename, "r");
     uint32_t length_read = 0;
 

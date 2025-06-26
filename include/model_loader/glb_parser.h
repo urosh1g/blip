@@ -64,6 +64,7 @@ dynarr_define_for(gltfprimitive_t, gltfprimitive);
 
 typedef struct gltfmesh_t {
     dynarr_gltfprimitive_t primitives;
+    char* name;
 } gltfmesh_t;
 
 typedef struct gltf_t {
