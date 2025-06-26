@@ -372,19 +372,24 @@ gltfprimitive_t primitive_parse(char* chunk){
         char* indices =  extract_field_value("indices", chunk, "indices");
         char* attributes = extract_section("attributes", chunk, "attributes");
         char* POSITION =  extract_field_value("POSITION", attributes, "POSITION");
+	char* NORMAL = extract_field_value("NORMAL",attributes,"NORMAL");
 
         gltfprimitive_t p;
         htable_attributes_init(&p.attributes, NULL);
         p.mode = mode ? atoi(mode) : GL_TRIANGLES;
         htable_attributes_insert(&p.attributes, "POSITION", atoi(POSITION));
-        if (indices)
+	if(NORMAL){
+            htable_attributes_insert(&p.attributes, "NORMAL", atoi(NORMAL));
+	    free(NORMAL);
+	}
+        if (indices){
             htable_attributes_insert(&p.attributes, "indices", atoi(indices));
+	    free(indices);
+	}
 	if(mode)
 		free(mode);
 	free(attributes);
 	free(POSITION);
-	if(indices)
-		free(indices);
 	return p;
 }
 

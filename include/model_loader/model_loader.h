@@ -14,6 +14,7 @@ typedef struct geometry_data_t {
 typedef struct primitive_t {
     geometry_data_t* vertices;
     geometry_data_t* indices;
+    geometry_data_t* normals;
     GLenum rendermode;
 } primitive_t;
 

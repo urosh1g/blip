@@ -12,12 +12,11 @@ int main() {
     glfwMakeContextCurrent(window);
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
-    model_t* m = model_load("assets/Fox.glb");
+    model_t* m = model_load("assets/Box.glb");
     model_get_VAOs(m);
-    log_info("Vertices count:%d",
+    log_info("model.mesh[0].primitives[0].vertices count=%d",
              m->meshes->elems[0].primitives->elems[0].vertices->count);
-    // log_info("Indices
-    // count:%d",m->meshes->elems[0].primitives->elems[0].indices->count);
+    log_info("model.mesh[0].primitives[0].indices count=%d",m->meshes->elems[0].primitives->elems[0].indices?m->meshes->elems[0].primitives->elems[0].indices->count:0);
     model_destroy(m);
     free(m);
 }
