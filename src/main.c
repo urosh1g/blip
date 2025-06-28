@@ -15,7 +15,7 @@
 #include <texture.h>
 #include <logger/logger.h>
 #include <model_loader/model_loader.h>
-
+#include <lighting.h>
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
@@ -163,8 +163,8 @@ int main() {
     });
     GLFWwindow* window = init_glad_glfw();
 
-    GLuint vert_shader = shader_load("simple.vs", GL_VERTEX_SHADER);
-    GLuint frag_shader = shader_load("simple.fs", GL_FRAGMENT_SHADER);
+    GLuint vert_shader = shader_load("shaders/simple.vert", GL_VERTEX_SHADER);
+    GLuint frag_shader = shader_load("shaders/simple.frag", GL_FRAGMENT_SHADER);
 
     GLuint shaders[2];
     shaders[0] = vert_shader;
@@ -183,8 +183,9 @@ int main() {
      unsigned int indices[] = {0, 1, 2, 0, 2, 3};
      */
 
-    model_t* loadedmodel = model_load("assets/ToyCar.glb");
+    model_t* loadedmodel = model_load("assets/Duck.glb");
     uint32_t** VAO = model_get_VAOs(loadedmodel);
+    light_t light=light_create_default();
     /*
     unsigned int img_id = tex_load("./assets/img.png", true);
     (void)img_id;
@@ -196,9 +197,9 @@ int main() {
     */
     mat4 model;
     glm_mat4_identity(model);
-    vec3 v = {3, 3, 3};
+    vec3 v = {1, 1, 1};
     glm_scale(model, v);
-    vec3 camera_pos = {0, 0, 0};
+    vec3 camera_pos = {5, 5, 5};
     vec3 world_up = {0, 1, 0};
     camera_t camera;
     camera_create(&camera, camera_pos, world_up, 16 / 9.0f, 0.1f, 100.0f, 45.0f,
@@ -218,8 +219,17 @@ int main() {
         GLuint view_id = glGetUniformLocation(program, "view");
         GLuint projection_id = glGetUniformLocation(program, "projection");
         (void)camera;
-
-        model_draw(loadedmodel, model, model_id, VAO);
+	
+        GLuint objColor_id = glGetUniformLocation(program, "objectColor");
+        GLuint lightColor_id = glGetUniformLocation(program, "lightColor");
+        GLuint lightPos_id = glGetUniformLocation(program, "lightPos");
+        GLuint ambientStrength_id = glGetUniformLocation(program, "ambientStrength");
+        glUniform3fv(objColor_id, 1, (const float[]){1.0,1.0,0.0});
+        glUniform3fv(lightColor_id, 1, light.ambient);
+        glUniform3fv(lightPos_id, 1, light.position);
+        glUniform1f(ambientStrength_id, light.ambient_strength);
+        
+	model_draw(loadedmodel, model, model_id, VAO);
 
         glUniformMatrix4fv(model_id, 1, GL_FALSE, (const float*)model);
         glUniformMatrix4fv(view_id, 1, GL_FALSE, (const float*)camera.view);

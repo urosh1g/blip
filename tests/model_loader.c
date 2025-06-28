@@ -13,11 +13,10 @@ int main() {
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
     model_t* m = model_load("assets/Box.glb");
-    GLuint** VAOs=model_get_VAOs(m);
+    GLuint** VAOs = model_get_VAOs(m);
 
-    for(size_t i=0;i<m->meshes->length;i++)
-    {
-	    free(VAOs[i]);
+    for (size_t i = 0; i < m->meshes->length; i++) {
+        free(VAOs[i]);
     }
     free(VAOs);
     model_destroy(m);
