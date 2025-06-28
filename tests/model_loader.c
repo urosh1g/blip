@@ -13,10 +13,15 @@ int main() {
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
     model_t* m = model_load("assets/Box.glb");
-    model_get_VAOs(m);
-    log_info("model.mesh[0].primitives[0].vertices count=%d",
-             m->meshes->elems[0].primitives->elems[0].vertices->count);
-    log_info("model.mesh[0].primitives[0].indices count=%d",m->meshes->elems[0].primitives->elems[0].indices?m->meshes->elems[0].primitives->elems[0].indices->count:0);
+    GLuint** VAOs=model_get_VAOs(m);
+
+    for(size_t i=0;i<m->meshes->length;i++)
+    {
+	    free(VAOs[i]);
+    }
+    free(VAOs);
     model_destroy(m);
     free(m);
+    glfwDestroyWindow(window);
+    glfwTerminate();
 }

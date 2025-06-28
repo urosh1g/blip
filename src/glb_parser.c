@@ -3,17 +3,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <logger/logger.h>
-static char* extract_section(char* start_tag, char* chunk, char* field_name) {
-    char* start = strstr(chunk, start_tag);
+
+static char* extract_section(char* startstr, char* chunk, char* field_name) {
+    char* start = strstr(chunk, startstr);
     if (!start)
         return NULL;
     uint32_t parenthesis = 1;
-    if (start_tag[0] != '{' && start_tag[0] != '[') {
+    if (startstr[0] != '{' && startstr[0] != '[') {
         start = strstr(start, "\":");
         start += 2;
     }
     char* p = start;
-    while (strlen(p) > 0 && parenthesis != 0) {
+    while (*p!='\0' && parenthesis != 0) {
         p++;
         if (*p == '{' || *p == '[')
             parenthesis++;
@@ -30,47 +31,29 @@ static char* extract_section(char* start_tag, char* chunk, char* field_name) {
     return result;
 }
 
-static char* extract_section_between_tags(char* start_tag, char* end_tag,
-                                          char* chunk, char* field_name) {
-    char* start = strstr(chunk, start_tag);
-    if (!start) {
-        //log_debug("Couldn't find %s", start_tag);
-        return NULL;
-    }
-    char* end = strstr(start, end_tag);
-    if (!end) {
-        end = strstr(start, "}");
-    }
-    char* result = malloc(end - start + 2);
-    strncpy(result, start, end - start + 1);
-    result[end - start + 1] = '\0';
-    (void)field_name;
-    // log_debug("found %s\n%s",field_name,result);
-    return result;
-}
 
 static char* extract_field_value(char* startstr, char* chunk,
                                  char* field_name) {
-    char* dummy =
-        extract_section_between_tags(startstr, ",", chunk, field_name);
-    if (!dummy)
+    char *start, *end, *field_value;
+    start = strstr(chunk, startstr);
+    if (!start) {
+        //log_debug("Couldn't find %s", startstr);
         return NULL;
-    char* start = strchr(dummy, ':');
-    if (!start)
-        return NULL;
+    }
+    start = strchr(start, ':');
+    if (!start) return NULL;
     start++;
-    char* end = strchr(start, ',');
+    end = strchr(start, ',');
     if (!end)
-        end = strstr(start, "}");
-    if (!end)
-        return NULL;
-    char* subchunk = malloc(end - start + 1);
-    strncpy(subchunk, start, end - start);
-    subchunk[end - start] = '\0';
+        end = strchr(start, '}');
+    if (!end)	return NULL;
+    
+    field_value = malloc(end - start + 1);
+    strncpy(field_value, start, end - start);
+    field_value[end - start] = '\0';
     (void) field_name;
-    //log_debug("%s=%s", field_name, subchunk);
-    free(dummy);
-    return subchunk;
+    //log_debug("%s=%s", field_name, field_value);
+    return field_value;
 }
 
 static gltfnode_t* gltfnode_parse(char* node_s) {
@@ -103,27 +86,26 @@ static gltfnode_t* gltfnode_parse(char* node_s) {
     }
 
     else {
-        glm_mat4_identity(m);
-    }
-
-    if (translation) {
-        vec3 vec;
-        sscanf(translation, "[%f,%f,%f]", &vec[0], &vec[1], &vec[2]);
-        glm_translate(m, vec);
-        free(translation);
-    }
-    if (rotation) {
-        versor quat;
-        sscanf(rotation, "[%f,%f,%f,%f]", &quat[0], &quat[1], &quat[2],
-               &quat[3]);
-        glm_quat_rotate(m, quat, m);
-        free(rotation);
-    }
-    if (scale) {
-        vec3 vec;
-        sscanf(scale, "[%f,%f,%f]", &vec[0], &vec[1], &vec[2]);
-        glm_scale(m, vec);
-        free(scale);
+        	glm_mat4_identity(m);
+   		if (translation) {
+   		    vec3 vec;
+   		    sscanf(translation, "[%f,%f,%f]", &vec[0], &vec[1], &vec[2]);
+   		    glm_translate(m, vec);
+   		    free(translation);
+   		}
+   		if (rotation) {
+   		    versor quat;
+   		    sscanf(rotation, "[%f,%f,%f,%f]", &quat[0], &quat[1], &quat[2],
+   		           &quat[3]);
+   		    glm_quat_rotate(m, quat, m);
+   		    free(rotation);
+   		}
+   		if (scale) {
+   		    vec3 vec;
+   		    sscanf(scale, "[%f,%f,%f]", &vec[0], &vec[1], &vec[2]);
+   		    glm_scale(m, vec);
+   		    free(scale);
+   		}
     }
 
     gltfnode_t* n = malloc(sizeof(gltfnode_t));
@@ -145,7 +127,6 @@ static gltfnode_t* gltfnode_parse(char* node_s) {
         node = strtok(node, ",");
 
         while (node) {
-            // log_error("-------------------node%s",node);
             dynarr_uint32_push(n->children, atoi(node));
             node = strtok(NULL, ",");
         }
@@ -184,9 +165,8 @@ static gltfscene_t* gltfscene_parse(char* scene_s) {
     node = strtok(node, ",");
 
     gltfscene_t* s = malloc(sizeof(gltfscene_t));
-    if (!node) {
+    if (!nodes_s) {
         s->nodes = NULL;
-        free(nodes_s);
         return s;
     }
     dynarr_uint32_t* nodes = malloc(sizeof(dynarr_uint32_t));
@@ -344,6 +324,7 @@ static accessor_t accessor_parse(char* accessor_s) {
     free(componentType);
     free(count);
     free(type);
+    if(sparse) free(sparse);
     return a;
 }
 
@@ -541,6 +522,8 @@ void gltfmesh_destroy(gltfmesh_t* mesh) {
     for (size_t j = 0; j < mesh->primitives.length; j++)
         htable_attributes_destroy(&mesh->primitives.elems[j].attributes);
     dynarr_gltfprimitive_destroy(&mesh->primitives);
+    if(mesh->name)
+	    free(mesh->name);
 }
 
 void gltf_destroy(gltf_t* gltf) {

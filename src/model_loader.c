@@ -1,6 +1,7 @@
 #include <glad/glad.h>
 #include <model_loader/model_loader.h>
 #include <logger/logger.h>
+
 void geometry_data_destroy(geometry_data_t* gd) { free(gd->data); }
 
 void primitive_destroy(primitive_t* p) {
@@ -10,12 +11,17 @@ void primitive_destroy(primitive_t* p) {
         geometry_data_destroy(p->indices);
         free(p->indices);
     }
+    if (p->normals) {
+        geometry_data_destroy(p->normals);
+        free(p->normals);
+    }
 }
 
 void mesh_destroy(mesh_t* m) {
     for (size_t i = 0; i < m->primitives->length; i++) {
         primitive_destroy(&m->primitives->elems[i]);
     }
+    dynarr_primitive_destroy(m->primitives);
     free(m->primitives);
 }
 
