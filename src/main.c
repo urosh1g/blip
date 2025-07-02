@@ -183,9 +183,9 @@ int main() {
      unsigned int indices[] = {0, 1, 2, 0, 2, 3};
      */
 
-    model_t* loadedmodel = model_load("assets/Duck.glb");
+    model_t* loadedmodel = model_load("assets/VC.glb");
     uint32_t** VAO = model_get_VAOs(loadedmodel);
-    light_t light=light_create_default();
+    light_t light = light_create_default();
     /*
     unsigned int img_id = tex_load("./assets/img.png", true);
     (void)img_id;
@@ -219,17 +219,18 @@ int main() {
         GLuint view_id = glGetUniformLocation(program, "view");
         GLuint projection_id = glGetUniformLocation(program, "projection");
         (void)camera;
-	
+
         GLuint objColor_id = glGetUniformLocation(program, "objectColor");
         GLuint lightColor_id = glGetUniformLocation(program, "lightColor");
         GLuint lightPos_id = glGetUniformLocation(program, "lightPos");
-        GLuint ambientStrength_id = glGetUniformLocation(program, "ambientStrength");
-        glUniform3fv(objColor_id, 1, (const float[]){1.0,1.0,0.0});
+        GLuint ambientStrength_id =
+            glGetUniformLocation(program, "ambientStrength");
+        glUniform3fv(objColor_id, 1, (const float[]){1.0, 0.0, 1.0});
         glUniform3fv(lightColor_id, 1, light.ambient);
         glUniform3fv(lightPos_id, 1, light.position);
         glUniform1f(ambientStrength_id, light.ambient_strength);
-        
-	model_draw(loadedmodel, model, model_id, VAO);
+
+        model_draw(loadedmodel, model, model_id, VAO);
 
         glUniformMatrix4fv(model_id, 1, GL_FALSE, (const float*)model);
         glUniformMatrix4fv(view_id, 1, GL_FALSE, (const float*)camera.view);
