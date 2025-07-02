@@ -41,7 +41,7 @@
         arr->capacity = capacity;                                              \
     }                                                                          \
                                                                                \
-    ALLOWUNSUED static inline void dynarr_##name##_push(                       \
+    ALLOWUNUSED static inline void dynarr_##name##_push(                       \
         dynarr_##name##_t* arr, type value) {                                  \
         if (arr->length >= arr->capacity) {                                    \
             arr->capacity *= 2;                                                \
