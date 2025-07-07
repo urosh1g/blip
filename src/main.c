@@ -14,6 +14,8 @@
 #include <camera.h>
 #include <texture.h>
 #include <logger/logger.h>
+#include <model_loader/model_loader.h>
+#include <lighting.h>
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
@@ -161,8 +163,8 @@ int main() {
     });
     GLFWwindow* window = init_glad_glfw();
 
-    GLuint vert_shader = shader_load("vs.glsl", GL_VERTEX_SHADER);
-    GLuint frag_shader = shader_load("fs.glsl", GL_FRAGMENT_SHADER);
+    GLuint vert_shader = shader_load("shaders/simple.vert", GL_VERTEX_SHADER);
+    GLuint frag_shader = shader_load("shaders/simple.frag", GL_FRAGMENT_SHADER);
 
     GLuint shaders[2];
     shaders[0] = vert_shader;
@@ -174,32 +176,17 @@ int main() {
     log_warn("This is a warn level log.");
     log_error("This is a error level log.");
     log_fatal("This is a fatal level log.");
+    /*
+     float vertices[] = {// coords	  //tex_coords
+                         -0.5, 0.5,  0, 0, 1, -0.5, -0.5, 0, 0, 0,
+                         0.5,  -0.5, 0, 1, 0, 0.5,  0.5,  0, 1, 1};
+     unsigned int indices[] = {0, 1, 2, 0, 2, 3};
+     */
 
-    float vertices[] = {// coords	  //tex_coords
-                        -0.5, 0.5,  0, 0, 1, -0.5, -0.5, 0, 0, 0,
-                        0.5,  -0.5, 0, 1, 0, 0.5,  0.5,  0, 1, 1};
-    unsigned int indices[] = {0, 1, 2, 0, 2, 3};
-
-    unsigned int VAO, VBO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
-                 GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                          (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(0);
-
+    model_t* loadedmodel = model_load("assets/VC.glb");
+    uint32_t** VAO = model_get_VAOs(loadedmodel);
+    light_t light = light_create_default();
+    /*
     unsigned int img_id = tex_load("./assets/img.png", true);
     (void)img_id;
     program_use(program);
@@ -207,16 +194,19 @@ int main() {
     tex_bind(img_id);
     GLuint tex_uniform = glGetUniformLocation(program, "tex");
     glUniform1i(tex_uniform, 0);
-
-    mat4 model = GLM_MAT4_IDENTITY_INIT;
-    vec3 camera_pos = {0, 0, 2};
+    */
+    mat4 model;
+    glm_mat4_identity(model);
+    vec3 v = {1, 1, 1};
+    glm_scale(model, v);
+    vec3 camera_pos = {5, 5, 5};
     vec3 world_up = {0, 1, 0};
     camera_t camera;
     camera_create(&camera, camera_pos, world_up, 16 / 9.0f, 0.1f, 100.0f, 45.0f,
                   CAMERA_PERSPECTIVE);
 
     global_camera = &camera;
-
+    glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
         float current_frame = (float)glfwGetTime();
         delta_time = current_frame - last_frame;
@@ -230,14 +220,23 @@ int main() {
         GLuint projection_id = glGetUniformLocation(program, "projection");
         (void)camera;
 
+        GLuint objColor_id = glGetUniformLocation(program, "objectColor");
+        GLuint lightColor_id = glGetUniformLocation(program, "lightColor");
+        GLuint lightPos_id = glGetUniformLocation(program, "lightPos");
+        GLuint ambientStrength_id =
+            glGetUniformLocation(program, "ambientStrength");
+        glUniform3fv(objColor_id, 1, (const float[]){1.0, 0.0, 1.0});
+        glUniform3fv(lightColor_id, 1, light.ambient);
+        glUniform3fv(lightPos_id, 1, light.position);
+        glUniform1f(ambientStrength_id, light.ambient_strength);
+
+        model_draw(loadedmodel, model, model_id, VAO);
+
         glUniformMatrix4fv(model_id, 1, GL_FALSE, (const float*)model);
         glUniformMatrix4fv(view_id, 1, GL_FALSE, (const float*)camera.view);
         glUniformMatrix4fv(projection_id, 1, GL_FALSE,
                            (const float*)camera.projection);
 
-        glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         igNewFrame();
@@ -255,9 +254,9 @@ int main() {
     ImGui_ImplGlfw_Shutdown();
     igDestroyContext(imgui_ctx);
 
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
+    // glDeleteVertexArrays(1, &VAO);
+    // glDeleteBuffers(1, &VBO);
+    // glDeleteBuffers(1, &EBO);
 
     glfwDestroyWindow(window);
     glfwTerminate();
