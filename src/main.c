@@ -16,6 +16,8 @@
 #include <logger/logger.h>
 #include <model_loader/model_loader.h>
 #include <lighting.h>
+#include <ecs/component.h>
+
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
@@ -155,12 +157,19 @@ GLFWwindow* init_glad_glfw() {
     return window;
 }
 
+typedef struct {
+    float x, y, z;
+} position_t;
+
+typedef struct {
+    float g;
+} gravity_t;
+
+typedef struct {
+    float x, y, z;
+} velocity_t;
+
 int main() {
-    FILE* file_log = fopen("log.txt", "w");
-    log_add_sink((log_sink_t){
-        .sink = file_log,
-        .level = LOG_WARN,
-    });
     GLFWwindow* window = init_glad_glfw();
 
     GLuint vert_shader = shader_load("shaders/simple.vert", GL_VERTEX_SHADER);
@@ -170,6 +179,12 @@ int main() {
     shaders[0] = vert_shader;
     shaders[1] = frag_shader;
     GLuint program = program_link(shaders, 2);
+
+    component_mgr_t cmgr;
+    ecs_component_mgr_create(&cmgr);
+    ecs_component_register(&cmgr, velocity_t);
+    log_debug("velocity_t id: %d\n", *ecs_component_id(&cmgr,velocity_t));
+    ecs_component_mgr_destroy(&cmgr);
 
     log_debug("This is a debug level log.");
     log_info("This is a info level log.");
@@ -183,7 +198,7 @@ int main() {
      unsigned int indices[] = {0, 1, 2, 0, 2, 3};
      */
 
-    model_t* loadedmodel = model_load("assets/VC.glb");
+    model_t* loadedmodel = model_load("assets/DragonAttenuation.glb");
     uint32_t** VAO = model_get_VAOs(loadedmodel);
     light_t light = light_create_default();
     /*

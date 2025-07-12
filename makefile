@@ -22,7 +22,7 @@ TEST_FILES = $(wildcard $(TEST_DIR)/*.c)
 TEST_EXECUTABLES = $(TEST_FILES:$(TEST_DIR)/%.c=$(TEST_DIR)/%.out)
 EXECUTABLE = main
 
-.PHONY: all
+.PHONY: all configure tests clean test
 
 all: $(EXECUTABLE)
 
@@ -52,9 +52,9 @@ clang-format:
 
 configure: compile_commands.json clang-format
 
-tests:  $(TEST_EXECUTABLES) $(OBJ_DIR)/entity.o $(OBJ_DIR)/glb_parser.o $(OBJ_DIR)/model_loader.o $(OBJ_DIR)/glad.o  
+tests:  $(TEST_EXECUTABLES) $(OBJ_DIR)/entity.o $(OBJ_DIR)/glb_parser.o $(OBJ_DIR)/model_loader.o $(OBJ_DIR)/glad.o $(OBJ_DIR)/component.o 
 
-$(TEST_DIR)/%.out: $(TEST_DIR)/%.c $(OBJ_DIR)/entity.o $(OBJ_DIR)/glb_parser.o $(OBJ_DIR)/model_loader.o $(OBJ_DIR)/logger.o $(OBJ_DIR)/glad.o 
+$(TEST_DIR)/%.out: $(TEST_DIR)/%.c $(OBJ_DIR)/component.o $(OBJ_DIR)/entity.o $(OBJ_DIR)/glb_parser.o $(OBJ_DIR)/model_loader.o $(OBJ_DIR)/logger.o $(OBJ_DIR)/glad.o 
 	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -L$(LIB_DIR) $^ -o $@ $(LDARGS) 
 
 clean:
